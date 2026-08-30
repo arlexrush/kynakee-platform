@@ -388,30 +388,58 @@ Non-negotiable architecture rules are defined in the Copilot Instructions and AD
 
 # Repository Structure
 
+This repository contains the backend platform and infrastructure services, including the independent `Kynakee.Gateway` project. The frontend lives in a separate repository named `kynakee-web` and is deployed as an independent Docker container. Each repository owns its Docker Compose configuration.
+
 ```text
-src/
-├── Kynakee.Api
-├── Kynakee.Web
-└── Kynakee.Modules
-    ├── Projects
-    ├── KnowledgeBase
-    ├── MCP
-    ├── AI
-    ├── Bots
-    ├── Billing
-    └── Identity
+kynakee-platform/                  # Backend repository
+├── src/
+│   ├── Kynakee.Api               # API gateway + host
+│   └── Kynakee.Modules
+│       ├── Projects
+│       ├── KnowledgeBase
+│       ├── MCP
+│       ├── AI
+│       ├── Bots
+│       ├── Billing
+│       └── Identity
+├── tests/
+│   ├── Kynakee.UnitTests
+│   ├── Kynakee.IntegrationTests
+│   ├── Kynakee.ContractTests
+│   └── Kynakee.E2ETests          # Backend/system E2E and API lifecycle validation
+├── docker/
+│   ├── docker-compose.dev.yml
+│   ├── docker-compose.staged.yml
+│   └── docker-compose.prod.yml
+├── README.md
+└── Kynakee.slnx
 
-tests/
-├── Kynakee.UnitTests
-├── Kynakee.IntegrationTests
-├── Kynakee.ContractTests
-└── Kynakee.E2ETests
-
-docker/
-├── docker-compose.dev.yml
-├── docker-compose.staging.yml
-└── docker-compose.prod.yml
+kynakee-web/                      # Frontend repository (separate)
+├── app/
+├── components/
+├── lib/
+├── public/
+├── e2e/                          # Browser E2E tests for the UI
+├── package.json
+├── Dockerfile
+└── docker-compose.yml
 ```
+
+## Frontend and Backend Separation
+
+The platform is split between two repositories and independently deployed application services:
+
+- `kynakee-platform`: .NET 10 backend, API gateway, business logic, background jobs, and shared infrastructure.
+- `kynakee-web`: Next.js 15 frontend for the user experience.
+
+Both repositories are deployed independently, but the web application interacts with the platform through the gateway (`REST` and `SignalR`). The backend Compose starts `Kynakee.Gateway` and `Kynakee.Api` together, sharing platform services (PostgreSQL, Redis, RabbitMQ, Qdrant, etc.). The gateway is the published HTTP entry point and the API is internal to the Compose network. The current gateway project is scaffolded; YARP routing is implemented in US-010. This repository does not build or start `kynakee-web`; the frontend repository must be started with its own Compose configuration.
+
+E2E validation lives in both repositories:
+
+- `kynakee-platform`: backend/system E2E tests for API flows, lifecycle validation, and platform integration.
+- `kynakee-web`: browser E2E tests for the end-user workflow and UI journeys.
+
+This separation keeps the backend domain and the UI lifecycle independent, improves deployability, and simplifies team ownership.
 
 【1-5f8011】【1-b28b4f】【1-534902】
 
