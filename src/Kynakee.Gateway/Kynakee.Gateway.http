@@ -1,0 +1,6 @@
+@Kynakee.Gateway_HostAddress = http://localhost:5094
+
+GET {{Kynakee.Gateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

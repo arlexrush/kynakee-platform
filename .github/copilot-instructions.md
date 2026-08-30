@@ -5,6 +5,8 @@ You are assisting with the **Kynakee** platform: an AI-powered construction budg
 **Architecture:** Modular Monolith · DDD · CQRS · Vertical Slice · Event-Driven · Outbox Pattern  
 **7 Modules:** Projects (Core Domain) · KnowledgeBase · MCP · AI · Bots · Billing · Identity
 
+The repository uses three branches/environments: develop for development, staged for staging, and master for production. There must be three separate Compose files, and the naming convention must be consistent: docker-compose.dev.yml, docker-compose.staged.yml, and docker-compose.prod.yml. Each repository maintains its own Docker Compose. The kynakee-platform repository does not build or start kynakee-web; its local Compose includes backend infrastructure, `Kynakee.Gateway`, `Kynakee.Api`, and ngrok. The gateway is the only published HTTP entry point and the API is internal to the Compose network. The kynakee-web repository retains its independent Compose. The repository contains an independent project `Kynakee.Gateway`; it must not be assumed that the gateway YARP is within `Kynakee.Api`. The Docker topology and conclusions regarding the Compose must be reviewed considering this explicit project.
+
 ---
 
 ## ABSOLUTE RULES — Enforce on every code generation
@@ -56,11 +58,7 @@ You are assisting with the **Kynakee** platform: an AI-powered construction budg
 ## Project Aggregate — CRITICAL RULES
 
 The `Project` class is the aggregate root that owns all 9 phase entities.
-
-```
 Phase order: Initialization → Capture → Context → Scope → Production → Planning → Valuation → Review → Offer
-```
-
 1. **ALL phase transition logic lives inside the `Project` aggregate** — never in handlers or services
 2. **Modifying a WorkItem MUST call `InvalidateDownstreamResults()`** which sets `Schedule`, `Valuation`, `Review`, `Offer` to null
 3. **ALL Project mutations go through aggregate methods** — never modify child entities directly via DbContext
@@ -70,21 +68,15 @@ Phase order: Initialization → Capture → Context → Scope → Production →
 ---
 
 ## MediatR Pipeline Order (do not change)
-
-```
 1. LoggingBehavior
 2. ValidationBehavior (FluentValidation)
 3. TenantIsolationBehavior (inject TenantId from JWT)
 4. TokenGateBehavior (reserve credits — AI commands only)
 5. TransactionBehavior (DB transaction — commands only)
 6. DomainEventDispatchBehavior (after commit)
-```
-
 ---
 
 ## File Structure Pattern
-
-```
 Kynakee.Modules.{Module}/
 ├── Domain/Aggregates/        # Aggregate roots
 ├── Domain/Entities/          # Child entities
@@ -108,8 +100,6 @@ Kynakee.Modules.{Module}/
 │   └── Migrations/
 ├── Infrastructure/Repositories/
 └── Api/Endpoints/
-```
-
 ---
 
 ## EF Core Rules
@@ -123,8 +113,6 @@ Kynakee.Modules.{Module}/
 ---
 
 ## Result Pattern
-
-```csharp
 // Success
 return Result<T>.Success(value);
 
@@ -132,13 +120,9 @@ return Result<T>.Success(value);
 return Result<T>.Failure(new Error("ERROR_CODE", "Human message", ErrorType.Conflict));
 
 // Error types: Validation | NotFound | Conflict | Unauthorized | AI | MCP | Credits
-```
-
 ---
 
 ## API Response Pattern
-
-```csharp
 // Success
 Results.Ok(new ApiResponse<T>(result.Value!, traceId, DateTime.UtcNow))
 
@@ -150,8 +134,6 @@ result.Error!.Type switch
     ErrorType.Validation => Results.BadRequest(result.Error.ToProblemDetails()),
     _                    => Results.Problem(result.Error.ToProblemDetails())
 }
-```
-
 ---
 
 ## AI Agent → Model Assignment
@@ -198,4 +180,9 @@ result.Error!.Type switch
 | Log without context | Include TenantId, CorrelationId, UserId |
 | Endpoint with business logic | Endpoint → MediatR only |
 | Command without validator | Always create `AbstractValidator<TCommand>` |
+
+---
+
+## Task Closure Confirmation
+- For the closure of US-003, tasks numbered 2, 3, 4, and 6 are confirmed resolved. They should not be treated as pending again unless new validation provides contrary evidence.
 

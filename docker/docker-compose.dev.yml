@@ -1,0 +1,145 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: kynakee-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - kynakee-dev
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: kynakee-qdrant-dev
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_HTTP_PORT}:6333"
+      - "${QDRANT_GRPC_PORT}:6334"
+    volumes:
+      - qdrant-dev-data:/qdrant/storage
+    networks:
+      - kynakee-dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: kynakee-redis-dev
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-dev-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - kynakee-dev
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: kynakee-rabbitmq-dev
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    volumes:
+      - rabbitmq-dev-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - kynakee-dev
+
+  kynakee-api:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    container_name: kynakee-api-dev
+    working_dir: /workspace
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:${API_HTTP_PORT}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis: redis:6379
+      ConnectionStrings__RabbitMq: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      Qdrant__Endpoint: http://qdrant:6333
+    expose:
+      - "${API_HTTP_PORT}"
+    volumes:
+      - ..:/workspace
+      - dotnet-dev-nuget:/root/.nuget/packages
+    command: dotnet watch --project src/Kynakee.Api/Kynakee.Api.csproj run --no-launch-profile --urls http://0.0.0.0:${API_HTTP_PORT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    networks:
+      - kynakee-dev
+
+  kynakee-gateway:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    container_name: kynakee-gateway-dev
+    working_dir: /workspace
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: http://+:${GATEWAY_HTTP_PORT}
+      ReverseProxy__Clusters__api__Destinations__api__Address: http://kynakee-api:${API_HTTP_PORT}/     
+    ports:
+      - "${GATEWAY_HOST_PORT}:${GATEWAY_HTTP_PORT}"
+    volumes:
+      - ..:/workspace
+      - dotnet-dev-nuget:/root/.nuget/packages
+    command: dotnet watch --project src/Kynakee.Gateway/Kynakee.Gateway.csproj run --no-launch-profile --urls http://0.0.0.0:${GATEWAY_HTTP_PORT}
+    depends_on:
+      kynakee-api:
+        condition: service_started
+    networks:
+      - kynakee-dev
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: kynakee-ngrok-dev
+    restart: unless-stopped
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command: http --log=stdout kynakee-gateway:${GATEWAY_HTTP_PORT}
+    ports:
+      - "${NGROK_INSPECTOR_PORT}:4040"
+    depends_on:
+      kynakee-gateway:
+        condition: service_started
+    networks:
+      - kynakee-dev
+
+volumes:
+  postgres-dev-data:
+  qdrant-dev-data:
+  redis-dev-data:
+  rabbitmq-dev-data:
+  dotnet-dev-nuget:
+
+networks:
+  kynakee-dev:
+    name: kynakee-dev

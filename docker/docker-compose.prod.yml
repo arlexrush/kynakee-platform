@@ -1,0 +1,202 @@
+services:
+  traefik:
+    image: traefik:v3
+    container_name: kynakee-traefik-prod
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=kynakee-prod
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --ping=true
+      - --log.level=${TRAEFIK_LOG_LEVEL:-WARN}
+      - --accesslog=true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-prod-letsencrypt:/letsencrypt
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    networks:
+      - kynakee-prod
+
+  kynakee-gateway:
+    build:
+      context: ..
+      dockerfile: src/Kynakee.Gateway/Dockerfile
+    container_name: kynakee-gateway-prod
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__Clusters__api__Destinations__api__Address: http://kynakee-api:8080/
+    expose:
+      - "8080"
+    depends_on:
+      kynakee-api:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=kynakee-prod
+      - traefik.http.routers.gateway.rule=Host(`${API_HOST}`)
+      - traefik.http.routers.gateway.entrypoints=websecure
+      - traefik.http.routers.gateway.tls=true
+      - traefik.http.routers.gateway.tls.certresolver=letsencrypt
+      - traefik.http.services.gateway.loadbalancer.server.port=8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    networks:
+      - kynakee-prod
+
+  kynakee-api:
+    build:
+      context: ..
+      dockerfile: src/Kynakee.Api/Dockerfile
+    container_name: kynakee-api-prod
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis: redis:6379
+      ConnectionStrings__RabbitMq: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
+      Qdrant__Endpoint: http://qdrant:6333
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+    networks:
+      - kynakee-prod
+
+  postgres:
+    image: postgres:17
+    container_name: kynakee-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+    networks:
+      - kynakee-prod
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: kynakee-qdrant-prod
+    restart: unless-stopped
+    volumes:
+      - qdrant-prod-data:/qdrant/storage
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    networks:
+      - kynakee-prod
+
+  redis:
+    image: redis:7-alpine
+    container_name: kynakee-redis-prod
+    restart: unless-stopped
+    volumes:
+      - redis-prod-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    networks:
+      - kynakee-prod
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: kynakee-rabbitmq-prod
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq-prod-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    networks:
+      - kynakee-prod
+
+volumes:
+  traefik-prod-letsencrypt:
+  postgres-prod-data:
+  qdrant-prod-data:
+  redis-prod-data:
+  rabbitmq-prod-data:
+
+networks:
+  kynakee-prod:
+    name: kynakee-prod
