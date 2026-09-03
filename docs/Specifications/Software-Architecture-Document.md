@@ -48,7 +48,7 @@ This Software Architecture Document (SAD) describes the complete technical archi
 | Repository Split | `kynakee-platform` (backend) + `kynakee-web` (frontend) |
 | Database | PostgreSQL 17 (relational) + Qdrant (vector) |
 | Infrastructure | Docker on Hetzner Cloud |
-| Target Environments | Development (local) · Staging (Hetzner) · Production (Hetzner) |
+| Target Environments | Development (local) · Production (Hetzner) |
 
 ---
 
@@ -60,7 +60,7 @@ This Software Architecture Document (SAD) describes the complete technical archi
 |---|---|---|
 | Maintainability | High | Modular Monolith + Vertical Slice + DDD. Each module extractable to microservice. |
 | Scalability | Vertical first, horizontal later | Backend and frontend scale independently as separate Docker containers. Scale the API vertically on Hetzner before horizontal. |
-| Reliability | 99.5% uptime (staging/prod) | Polly resilience policies. MassTransit Outbox. Hangfire retry. |
+| Reliability | 99.5% uptime (production) | Polly resilience policies. MassTransit Outbox. Hangfire retry. |
 | Security | Multi-tenant isolation | Row-Level Security via TenantId. JWT via YARP. EF Core global query filters. |
 | Observability | Full tracing | Serilog + OpenTelemetry. CorrelationId on every request. |
 | AI Compliance | AI Act Art. 4,12,13,14,50 | AgentRun audit trail. Mandatory human review (Phase 7). Transparency disclosures. |
@@ -70,7 +70,7 @@ This Software Architecture Document (SAD) describes the complete technical archi
 
 - **Team:** 1 .NET developer + GitHub Copilot. Architecture must be manageable by a single developer.
 - **Timeline:** 1-month MVP. No time for microservices complexity.
-- **Budget:** Cost-optimized. Hetzner CX21 (~€4.5/month). No expensive managed services.
+- **Budget:** Cost-optimized. Hetzner CX23 initially. No expensive managed services.
 - **AI Act compliance** mandatory from day 1 (Art. 4, 12, 13, 14, 50 already enforceable).
 - **Multi-tenant from day 1.** No single-tenant shortcuts.
 - **Multi-region from day 1.** Architecture must support EU + LATAM without redesign.
@@ -440,10 +440,9 @@ The security model is layered:
 | Environment | Branch | Infrastructure | Compose File | Key Differences |
 |---|---|---|---|---|
 | Development | `develop` | Local Docker Desktop + NGrok | docker-compose.dev.yml | Hot reload, debug ports, NGrok for bot webhooks, no SSL |
-| Staging | `staged` | Hetzner CX21 (2 vCPU, 4GB) | docker-compose.staged.yml | Traefik SSL, real webhooks, anonymized data, mirrors prod |
-| Production | `master` | Hetzner CX31+ (4 vCPU, 8GB) | docker-compose.prod.yml | HA, backups, full observability, resource limits, SSL |
+| Production | `master` | Hetzner CX23 initially | docker-compose.prod.yml | Traefik SSL, backups, observability, resource limits |
 
-The runtime environment follows the Gitflow branch model: `develop` for active development, `staged` for validated release candidates, and `master` for production.
+The operational environment uses `develop` for local development and `master` for production. The staged Compose remains available for a future pre-production environment but is not deployed.
 
 ### Production Docker Compose (key settings)
 
@@ -581,7 +580,7 @@ On MCP failure:
 
 | Quality Attribute | Target | Measurement |
 |---|---|---|
-| Availability | 99.5% (staging/prod) | Uptime monitoring. Docker healthcheck. Traefik health probes. |
+| Availability | 99.5% (production) | Uptime monitoring. Docker healthcheck. Traefik health probes. |
 | Response Time (API) | < 200ms p95 (non-AI) | OpenTelemetry traces. YARP request logging. |
 | Response Time (AI ops) | < 30s p95 | AI operation timeout policy. Hangfire retry for slow ops. |
 | Throughput | 50 concurrent users (MVP) | Redis rate limiting. Polly bulkhead (5 concurrent AI calls/tenant). |
@@ -618,7 +617,7 @@ All technology decisions are documented as Architecture Decision Records (ADRs).
 | Observability | Serilog + OpenTelemetry | ADR-017 |
 | Soft Delete | IsDeleted + AuditInterceptor | ADR-018 |
 | Resilience | Polly + Choreography Saga | ADR-019 |
-| Environments | 3 Docker Compose files | ADR-020 |
+| Environments | Development and production operationally; staged Compose retained for future use | ADR-020 / ADR-016 |
 | Git Strategy | Gitflow | ADR-021 |
 | API Contracts | OpenAPI 3.1 + RFC 7807 | ADR-022 |
 | Testing | xUnit + Testcontainers + PactNet + Playwright | ADR-023 |

@@ -830,14 +830,14 @@ services.AddDbContext<ProjectDbContext>(options =>
 ## 13. Migration Strategy {#s13}
 
 - Each module has its own migrations folder: `Kynakee.Modules.{Module}.Infrastructure.Persistence.Migrations/`.
-- Migrations are applied at startup via `DbContext.Database.MigrateAsync()` in development and staging.
+- Migrations are applied at startup via `DbContext.Database.MigrateAsync()` in development only. Production migrations are applied as an explicit deployment step.
 - Production migrations are applied manually via CLI before deployment: `dotnet ef database update`.
 - Never modify the database directly. All schema changes via EF Core migrations.
 - Migration naming: `{timestamp}_{description}` e.g. `20260820_AddWorkItemSortOrder`.
 
 ```csharp
-// Apply migrations at startup (dev/staging only)
-if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+// Apply migrations at startup (development only)
+if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<ProjectDbContext>().Database.MigrateAsync();

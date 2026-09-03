@@ -29,9 +29,20 @@
     <File Path="docs/API/KynakeeApiContracts.docx" />
     <File Path="docs/API/KynakeeApiContracts.md" />
   </Folder>
+  <Folder Name="/docs/Deployment/">
+    <File Path="docs/Deployment/US-005-Hetzner-Runbook.md" />
+  </Folder>
   <Folder Name="/docs/Domain/">
     <File Path="docs/Domain/KynakeeDomainModel.docx" />
     <File Path="docs/Domain/KynakeeDomainModel.md" />
+  </Folder>
+  <Folder Name="/docs/ModuleContracts/">
+    <File Path="docs/Module_Contracts/Kynakee Module Contracts.docx" />
+    <File Path="docs/Module_Contracts/Module_Contracs.md" />
+  </Folder>
+  <Folder Name="/docs/PRD/">
+    <File Path="docs/PRD/Kynakee Prd.docx" />
+    <File Path="docs/PRD/PRD.md" />
   </Folder>
   <Folder Name="/docs/Sad/">
     <File Path="docs/SAD/KynakeeSad.docx" />
@@ -46,6 +57,10 @@
     <File Path="docs/Specifications/KynakeeSprint0Backlog.docx" />
     <File Path="docs/Specifications/KynakeeSprint0Backlog.md" />
     <File Path="docs/Specifications/Software-Architecture-Document.md" />
+  </Folder>
+  <Folder Name="/docs/TechnicalRoadmap/">
+    <File Path="docs/Technical_Roadmap/Kynakee Technical Roadmap.docx" />
+    <File Path="docs/Technical_Roadmap/Technical_Roadmap.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Kynakee.Api/Kynakee.Api.csproj" Id="75c092bd-0580-4e76-a974-3e809361ad7d" />
