@@ -393,7 +393,8 @@ This repository contains the backend platform and infrastructure services, inclu
 ```text
 kynakee-platform/                  # Backend repository
 ├── src/
-│   ├── Kynakee.Api               # API gateway + host
+│   ├── Kynakee.Gateway            # Public YARP gateway
+│   ├── Kynakee.Api                # Internal API host
 │   └── Kynakee.Modules
 │       ├── Projects
 │       ├── KnowledgeBase
@@ -440,6 +441,20 @@ E2E validation lives in both repositories:
 - `kynakee-web`: browser E2E tests for the end-user workflow and UI journeys.
 
 This separation keeps the backend domain and the UI lifecycle independent, improves deployability, and simplifies team ownership.
+
+## Deployment topology and environment policy
+
+The backend repository maintains Compose files for development, production, and a retained staged configuration. Only development and production are currently operational:
+
+| Environment | Branch | Compose file | Public HTTP entry point |
+|---|---|---|---|
+| Development | `develop` | `docker/docker-compose.dev.yml` | Gateway |
+| Staged (not deployed) | `staged` | `docker/docker-compose.staged.yml` | Gateway |
+| Production | `master` | `docker/docker-compose.prod.yml` | Gateway via Traefik |
+
+The gateway is the only published application endpoint. `Kynakee.Api` and the infrastructure services remain internal to the Docker network. Environment files are templates only; copy the appropriate `.env.*.example`, replace every `CHANGE_ME` value locally, and do not commit the resulting file.
+
+The complete record of these decisions is maintained in [`docs/ADR/kynakee-adrs-part3.md`](docs/ADR/kynakee-adrs-part3.md), and the Hetzner procedure is maintained in [`docs/Deployment/US-005-Hetzner-Runbook.md`](docs/Deployment/US-005-Hetzner-Runbook.md).
 
 【1-5f8011】【1-b28b4f】【1-534902】
 

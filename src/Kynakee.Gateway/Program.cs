@@ -9,6 +9,7 @@ namespace Kynakee.Gateway
 
             // Add services to the container.
             builder.Services.AddAuthorization();
+            builder.Services.AddHealthChecks();
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
@@ -24,6 +25,8 @@ namespace Kynakee.Gateway
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
+
+            app.MapHealthChecks("/health");
 
             var summaries = new[]
             {
