@@ -1,4 +1,3 @@
-
 namespace Kynakee.Api
 {
     public class Program
@@ -21,9 +20,6 @@ namespace Kynakee.Api
             {
                 app.MapOpenApi();
             }
-
-            // Configure the HTTP request pipeline.
-            app.UseHttpsRedirection();
 
             app.UseAuthorization();
 
