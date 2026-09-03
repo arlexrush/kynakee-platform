@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+      - master
+
+jobs:
+  build-and-test:
+    name: Build, test and validate coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/packages.lock.json
+
+      - name: Restore dependencies
+        run: dotnet restore Kynakee.slnx
+
+      - name: Build solution
+        run: dotnet build Kynakee.slnx --configuration Release --no-restore
+
+      - name: Run tests with coverage
+        run: |
+          mkdir -p TestResults
+          dotnet test Kynakee.slnx --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults --logger "trx;LogFileName=test-results.trx"
+
+      - name: Enforce coverage threshold
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path "TestResults" -Recurse -Filter "coverage.cobertura.xml" -File
+          if (-not $files) {
+            throw "No coverage report found in TestResults."
+          }
+
+          $totalCovered = 0
+          $totalValid = 0
+
+          foreach ($file in $files) {
+            [xml]$xml = Get-Content -Path $file.FullName
+            $totalCovered += [double]$xml.coverage.GetAttribute("lines-covered")
+            $totalValid += [double]$xml.coverage.GetAttribute("lines-valid")
+          }
+
+          if ($totalValid -le 0) {
+            throw "Coverage check failed: 0% (no executable lines were reported by the coverage tool)."
+          }
+
+          $overallCoverage = $totalCovered / $totalValid
+          $percent = [math]::Round(($overallCoverage * 100), 2)
+
+          Write-Host "Overall line coverage: $percent%"
+
+          if ($overallCoverage -lt 0.80) {
+            throw "Coverage check failed: $percent% is below 80%."
+          }

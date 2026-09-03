@@ -1,0 +1,87 @@
+<Solution>
+  <Folder Name="/.github/">
+    <File Path=".github/copilot-instructions.md" />
+  </Folder>
+  <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/ci.yml" />
+  </Folder>
+  <Folder Name="/docker/">
+    <File Path="docker/.env.dev" />
+    <File Path="docker/.env.dev.example" />
+    <File Path="docker/.env.example" />
+    <File Path="docker/.env.prod" />
+    <File Path="docker/.env.prod.example" />
+    <File Path="docker/.env.staged" />
+    <File Path="docker/.env.staged.example" />
+    <File Path="docker/docker-compose.dev.yml" />
+    <File Path="docker/docker-compose.override.example.yml" />
+    <File Path="docker/docker-compose.prod.yml" />
+    <File Path="docker/docker-compose.staged.yml" />
+    <File Path="Makefile" />
+  </Folder>
+  <Folder Name="/docs/" />
+  <Folder Name="/docs/Adr/">
+    <File Path="docs/ADR/ADRs.docx" />
+    <File Path="docs/ADR/kynakee-adrs-part1.md" />
+    <File Path="docs/ADR/kynakee-adrs-part2.md" />
+  </Folder>
+  <Folder Name="/docs/Api/">
+    <File Path="docs/API/KynakeeApiContracts.docx" />
+    <File Path="docs/API/KynakeeApiContracts.md" />
+  </Folder>
+  <Folder Name="/docs/Deployment/">
+    <File Path="docs/Deployment/US-005-Hetzner-Runbook.md" />
+  </Folder>
+  <Folder Name="/docs/Domain/">
+    <File Path="docs/Domain/KynakeeDomainModel.docx" />
+    <File Path="docs/Domain/KynakeeDomainModel.md" />
+  </Folder>
+  <Folder Name="/docs/ModuleContracts/">
+    <File Path="docs/Module_Contracts/Kynakee Module Contracts.docx" />
+    <File Path="docs/Module_Contracts/Module_Contracs.md" />
+  </Folder>
+  <Folder Name="/docs/PRD/">
+    <File Path="docs/PRD/Kynakee Prd.docx" />
+    <File Path="docs/PRD/PRD.md" />
+  </Folder>
+  <Folder Name="/docs/Sad/">
+    <File Path="docs/SAD/KynakeeSad.docx" />
+    <File Path="docs/SAD/KynakeeSad.md" />
+  </Folder>
+  <Folder Name="/docs/Specifications/">
+    <File Path="docs/Specifications/kynakee-database-desing.md" />
+    <File Path="docs/Specifications/KynakeeDatabaseDesign.docx" />
+    <File Path="docs/Specifications/KynakeeDatabaseDesign.md" />
+    <File Path="docs/Specifications/KynakeeFlujoEndToEnd.docx" />
+    <File Path="docs/Specifications/KynakeeFlujoEndToEnd.md" />
+    <File Path="docs/Specifications/KynakeeSprint0Backlog.docx" />
+    <File Path="docs/Specifications/KynakeeSprint0Backlog.md" />
+    <File Path="docs/Specifications/Software-Architecture-Document.md" />
+  </Folder>
+  <Folder Name="/docs/TechnicalRoadmap/">
+    <File Path="docs/Technical_Roadmap/Kynakee Technical Roadmap.docx" />
+    <File Path="docs/Technical_Roadmap/Technical_Roadmap.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Kynakee.Api/Kynakee.Api.csproj" Id="75c092bd-0580-4e76-a974-3e809361ad7d" />
+    <Project Path="src/Kynakee.Gateway/Kynakee.Gateway.csproj" Id="bdc71894-897e-4de6-ac04-ce8bae5cff75" />
+  </Folder>
+  <Folder Name="/src/Kynekee.Modules/">
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.Ai/Kynakee.Modules.Ai.csproj" Id="3339b31c-6085-4c8d-a599-c2a8560ff270" />
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.Billing/Kynakee.Modules.Billing.csproj" Id="0b95c9da-783b-43bd-a4b2-93f041be1d28" />
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.Bots/Kynakee.Modules.Bots.csproj" Id="cd9b64d1-d7f4-465e-b596-d40cb95108ab" />
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.Identity/Kynakee.Modules.Identity.csproj" Id="b9161d3a-d77c-42a5-8209-06765cf3f44c" />
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.KnowledgeBase/Kynakee.Modules.KnowledgeBase.csproj" Id="8997d613-6900-46c6-acf9-c6f88b58faf3" />
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.Mcp/Kynakee.Modules.Mcp.csproj" Id="8f608d58-6833-43f0-b5a0-59b70b7d5a03" />
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.Projects/Kynakee.Modules.Projects.csproj" Id="5b44be88-c478-40f7-a5b3-3273a4e0187d" />
+    <Project Path="src/Kynakee.Modules/Kynakee.Modules.Shared/Kynakee.Modules.SharedKernel.csproj" Id="2ba2fd92-6494-4c75-9372-0e2947500331" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kynakee.ArchitectureTests/Kynakee.ArchitectureTests.csproj" Id="943c30ac-aaa4-4bf6-bd74-30fbb61b8f03" />
+    <Project Path="tests/Kynakee.ContractTests/Kynakee.ContractTests/Kynakee.ContractTests.csproj" Id="9c74816f-36f2-4f09-b92b-b622b130f83d" />
+    <Project Path="tests/Kynakee.E2ETests/Kynakee.E2ETests/Kynakee.E2ETests.csproj" Id="7cff053d-d11c-4d54-8134-f1f8ff9f58ba" />
+    <Project Path="tests/Kynakee.IntegrationTests/Kynakee.IntegrationTests.csproj" Id="f0d70c56-5668-44a4-9ebe-607379aa4111" />
+    <Project Path="tests/Kynakee.UnitTests/Kynakee.UnitTests/Kynakee.UnitTests.csproj" Id="48ababc3-5ef2-4c6e-b99a-c6609d82abce" />
+  </Folder>
+  <Folder Name="/tools/" />
+</Solution>
