@@ -16,9 +16,8 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/Kynakee.Gateway/Kynakee.Gateway.csproj", "src/Kynakee.Gateway/"]
-RUN dotnet restore "./src/Kynakee.Gateway/Kynakee.Gateway.csproj"
 COPY . .
+RUN dotnet restore "./src/Kynakee.Gateway/Kynakee.Gateway.csproj"
 WORKDIR "/src/src/Kynakee.Gateway"
 RUN dotnet build "./Kynakee.Gateway.csproj" -c $BUILD_CONFIGURATION -o /app/build
 

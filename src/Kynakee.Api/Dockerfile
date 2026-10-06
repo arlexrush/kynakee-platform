@@ -16,9 +16,8 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/Kynakee.Api/Kynakee.Api.csproj", "src/Kynakee.Api/"]
-RUN dotnet restore "./src/Kynakee.Api/Kynakee.Api.csproj"
 COPY . .
+RUN dotnet restore "./src/Kynakee.Api/Kynakee.Api.csproj"
 WORKDIR "/src/src/Kynakee.Api"
 RUN dotnet build "./Kynakee.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
