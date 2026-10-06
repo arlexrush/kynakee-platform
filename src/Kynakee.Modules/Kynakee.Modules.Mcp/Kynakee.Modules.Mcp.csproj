@@ -5,5 +5,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="ModelContextProtocol.Core" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Kynakee.Modules.Shared\Kynakee.Modules.SharedKernel.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules.Identity\Kynakee.Modules.Identity.csproj" />
+  </ItemGroup>
 </Project>

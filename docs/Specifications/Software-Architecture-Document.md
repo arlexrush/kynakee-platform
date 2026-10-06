@@ -3,6 +3,8 @@
 ### Modular Monolith · DDD · CQRS · Event-Driven · .NET 10 · Next.js 15
 **Version 1.0 · 2026-08-20 · Confidential**
 
+> **Implementation boundary:** This document governs the target architecture; see [current state and governance](../Gobernanza/Estado-y-gobernanza.md) before claiming delivery. [`Kynakee.Gateway`](../../src/Kynakee.Gateway/Program.cs) is an independent YARP host; [`Kynakee.Api`](../../src/Kynakee.Api/Program.cs) currently maps `/health`, not the proposed business API. Projects domain and EF configurations exist, but its migrations and persistence tests remain postponed; six other module DbContexts are missing. JWT validation, RLS, outbox, observability and deployment capabilities below require concrete implementations and reproducible tests.
+
 ---
 
 ## Table of Contents
@@ -103,10 +105,10 @@ The platform is composed of separate runtime services running as independent Doc
 
 | Container | Technology | Responsibility |
 |---|---|---|
-| kynakee-gateway | ASP.NET Core 10 (.NET 10) | YARP reverse proxy and the only published HTTP entry point. Port 8080. |
+| kynakee-gateway | ASP.NET Core 10 (.NET 10) | YARP reverse proxy and the published business HTTP entry point. Development also exposes infrastructure and ngrok inspector ports. |
 | kynakee-api | ASP.NET Core 10 (.NET 10) | Internal application host for all 7 modules. Port 8080, not published to the host. |
 | kynakee-web | Next.js 15 (Node.js) | React frontend. App Router. Server + Client Components. Port 3000. Repository: `kynakee-web`. |
-| postgres | PostgreSQL 17 | Primary relational database. All 8 module schemas. Port 5432. |
+| postgres | PostgreSQL 17 | Primary relational database. Seven module schemas plus the shared schema. Port 5432. |
 | qdrant | Qdrant 1.x | Vector database for KnowledgeBase module. Port 6333. |
 | redis | Redis 7 | Distributed cache, session store, rate limiting. Port 6379. |
 | rabbitmq | RabbitMQ 3.13 | Message broker for integration events. Ports 5672, 15672. |
@@ -236,7 +238,7 @@ Kynakee.Modules.Projects/
 | Key Operations | SearchAPUTemplate, SaveAPUTemplate, SearchCanonicalConcept, GetTranslations |
 | Integration Events Consumed | WorkItemAdded (triggers APU lookup), APUGenerated (saves new template) |
 
-APUTemplate stores component structures with yields but **NO prices**. Prices are determined per-project in Phase 6. Qdrant stores 768d embeddings for semantic search across languages.
+APUTemplate stores component structures with yields but **NO prices**. Prices are determined per-project in Phase 6. Qdrant is the target vector index for 768d semantic search across languages. Current code includes a Qdrant adapter for concept/APU upsert, query, and removal, but AI embedding generation, synchronization, application workflows, event consumers, and live Qdrant/PostgreSQL verification remain pending; see [Estado y gobernanza](../Gobernanza/Estado-y-gobernanza.md).
 
 ### 6.3 MCP Module {#s6-3}
 
@@ -279,6 +281,8 @@ The MCP module is a **stateless price query service**. It receives component que
 | Architecture | Thin translation layer. No business logic. Dispatches Project commands via MediatR. |
 | Integration Events Published | BotMessageReceived |
 | Integration Events Consumed | PhaseAdvanced, CreditDepleted, OfferGenerated |
+
+**Current delivery boundary:** channel SDKs, webhook endpoints, dispatch and integration events in this table describe the target architecture, not operational integrations. Domain and persistence are implemented: `BotConversation` derives from `AggregateRoot<BotConversationId>`/`BaseEntity<TId>`, `BotMessage` from `BaseEntity<BotMessageId>`, with tenant/audit/soft delete, EF configurations, `BotsDbContext`, repository, transactions and DI registration. Business conversations require a non-empty previously authenticated user ID and tenant ID; external channel authentication and Identity/project authorization are pending. There are 55 passing unit and 27 passing PostgreSQL 17 integration tests; the initial migration was applied only in ephemeral test containers. See [governance](../Gobernanza/Estado-y-gobernanza.md#frontera-de-dominio-datos-y-persistencia-de-bots).
 
 ### 6.6 Billing Module {#s6-6}
 
@@ -326,9 +330,9 @@ Each module owns its own PostgreSQL schema. **Cross-schema queries are FORBIDDEN
 ### EF Core Configuration Rules
 
 - Code First ONLY. All changes via migrations. Never modify DB directly.
-- Soft deletes: `IsDeleted` + `DeletedAt`. Global query filter on all entities.
+- Soft deletes: `IsDeleted` + `DeletedAt`. Tenant-owned entities require tenant and soft-delete filters; genuinely global KnowledgeBase roots require a soft-delete filter, not a tenant filter.
 - Optimistic concurrency: `xmin` (PostgreSQL row version) on aggregate roots.
-- Mandatory indexes: `TenantId`, `CreatedAt`, `IsDeleted` on every table.
+- Tenant-owned tables require `TenantId`, `CreatedAt` and `IsDeleted` indexes as appropriate; global KnowledgeBase tables have no `TenantId` index.
 - `AuditInterceptor` auto-sets `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`, `IsDeleted`.
 
 ### Qdrant Vector Database
@@ -375,6 +379,33 @@ Consumer (Billing module):
     4. Mark idempotency key as processed
 ```
 
+### Shared Kernel — implementación vigente
+
+El Shared Kernel se implementa en el proyecto `Kynakee.Modules.SharedKernel`, con target
+`.NET 10` y namespace raíz `Kynakee.Modules.SharedKernel`. Es una librería compartida por
+los módulos y proporciona los siguientes bloques:
+
+| Área | Tipos implementados | Responsabilidad |
+|---|---|---|
+| Domain | `BaseEntity<TId>`, `GlobalEntity<TId>`, `AggregateRoot<TId>` | `BaseEntity` conserva el tenant obligatorio; `GlobalEntity` separa recursos globales con procedencia opcional, auditoría, soft delete y concurrencia; los eventos pertenecen a `AggregateRoot` |
+| Domain events | `IDomainEvent`, `DomainEvent`, `IDomainEventSubscriber<TEvent>`, `DomainEventSubscriber<TEvent>` | Notificaciones internas mediante MediatR después de confirmar la transacción |
+| Application | `Result<T>`, `Result`, `ResultFactory`, `ApplicationError`, `ErrorType` | Resultados de aplicación sin excepciones para errores de negocio |
+| Application | `PagedResult<T>`, `PagedResultFactory` | Resultados paginados con validación de página, tamaño y total |
+| Integration | `IIntegrationEvent`, `IntegrationEvent` | Identidad, fecha UTC y `TenantId` para eventos publicados mediante MassTransit Outbox |
+| Contracts | `IRequiresCredits`, `ITenantContext`, `IModuleEndpoints`, `BotMessageReceived` | Contratos transversales de créditos, tenant, endpoints y mensajes de bots |
+
+La implementación vigente utiliza `ApplicationError` como tipo de error y `ResultFactory`
+como punto de creación. Los contratos CQRS actuales son `ICommand<TResponse>`, `ICommand` e
+`IQuery<TResponse>`, todos basados en `IRequest` de MediatR. La carpeta y namespace actuales
+para estos contratos son `Contracts` y `Kynakee.Modules.SharedKernel.Contracts`.
+
+La implementación del Shared Kernel está validada mediante las suites existentes de pruebas
+unitarias, de contratos y de arquitectura. La última ejecución registrada obtuvo 132 pruebas
+superadas, sin fallos ni omisiones. Esta validación cubre las primitivas de aplicación, dominio,
+eventos, contratos CQRS, contratos de integración, namespaces, herencia y tipos residuales de
+scaffolding. Las pruebas de infraestructura real, Outbox, RabbitMQ, HTTP y E2E continúan
+perteneciendo a las fases de integración y sistema.
+
 ### MCP Provider Integration
 
 ```
@@ -409,14 +440,14 @@ Subsequent requests:
 The security model is layered:
 - Gateway: authentication, TLS, rate limiting, edge validation, request routing.
 - Application/API: authorization, tenant validation, business-rule enforcement, command/query validation.
-- Database: final data isolation with TenantId global filters and row-level protections.
+- Database: target isolation of tenant-owned data with TenantId filters and row-level protections; global KnowledgeBase access requires separate authorization for writes.
 
 
 ### Multi-Tenant Data Isolation
 
-- Every entity inherits `BaseEntity<TId>` with `TenantId` (MANDATORY).
-- EF Core global query filter: `WHERE tenant_id = @tenantId AND is_deleted = false`.
-- `TenantIsolationBehavior` in MediatR pipeline enforces TenantId on every command/query.
+- Every tenant-owned entity inherits `BaseEntity<TId>` with `TenantId` (MANDATORY); genuinely global KnowledgeBase entities inherit `GlobalEntity<TId>` without `TenantId`.
+- Target EF Core filters: `WHERE tenant_id = @tenantId AND is_deleted = false` for tenant-owned entities; `WHERE is_deleted = false` for global entities. Owner identifiers only record provenance; explicit authorization is required for global writes.
+- `TenantIsolationBehavior` in MediatR pipeline enforces TenantId for tenant-owned operations; global catalog writes need separate authorization.
 - Cross-tenant queries FORBIDDEN. Admin bypass requires explicit `IsAdmin = true` claim.
 - Background jobs carry TenantId in job payload. Never infer from context.
 
@@ -584,7 +615,7 @@ On MCP failure:
 | Response Time (API) | < 200ms p95 (non-AI) | OpenTelemetry traces. YARP request logging. |
 | Response Time (AI ops) | < 30s p95 | AI operation timeout policy. Hangfire retry for slow ops. |
 | Throughput | 50 concurrent users (MVP) | Redis rate limiting. Polly bulkhead (5 concurrent AI calls/tenant). |
-| Data Isolation | 100% tenant isolation | EF Core global query filters. TenantId on every entity. Verified by integration tests. |
+| Data Isolation | 100% isolation of tenant-owned data; global catalog reads shared | Verify tenant filters and global soft-delete filter with integration tests; global write authorization remains pending. |
 | Test Coverage | > 80% (line+branch+method) | coverlet. CI fails if below threshold. |
 | Security | OWASP Top 10 compliance | JWT auth. Input validation. SQL injection prevention via EF Core parameterized queries. |
 | Scalability | Vertical to CX51, then horizontal | Single container scales vertically. Module boundaries enable future horizontal extraction. |
@@ -617,7 +648,7 @@ All technology decisions are documented as Architecture Decision Records (ADRs).
 | Observability | Serilog + OpenTelemetry | ADR-017 |
 | Soft Delete | IsDeleted + AuditInterceptor | ADR-018 |
 | Resilience | Polly + Choreography Saga | ADR-019 |
-| Environments | Development and production operationally; staged Compose retained for future use | ADR-020 / ADR-016 |
+| Environments | Development and production Compose definitions exist; operation is unverified. Staged Compose retained for future use | ADR-020 / ADR-016 |
 | Git Strategy | Gitflow | ADR-021 |
 | API Contracts | OpenAPI 3.1 + RFC 7807 | ADR-022 |
 | Testing | xUnit + Testcontainers + PactNet + Playwright | ADR-023 |

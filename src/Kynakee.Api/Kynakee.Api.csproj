@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -8,10 +8,30 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.1-preview.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <PackageReference Include="Hangfire.AspNetCore" />
+    <PackageReference Include="Hangfire.PostgreSql" />
   </ItemGroup>
-
+  <ItemGroup>
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.Ai\Kynakee.Modules.Ai.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.Billing\Kynakee.Modules.Billing.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.Bots\Kynakee.Modules.Bots.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.Identity\Kynakee.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.KnowledgeBase\Kynakee.Modules.KnowledgeBase.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.Mcp\Kynakee.Modules.Mcp.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.Projects\Kynakee.Modules.Projects.csproj" />
+    <ProjectReference Include="..\Kynakee.Modules\Kynakee.Modules.Shared\Kynakee.Modules.SharedKernel.csproj" />
+  </ItemGroup>
 </Project>

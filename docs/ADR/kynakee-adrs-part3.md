@@ -1,5 +1,7 @@
 # Kynakee — ADRs (Part 3)
 
+> **Estado:** una decisión aprobada fija la dirección, no acredita su despliegue. Contrastar las afirmaciones de ejecución con [Estado y gobernanza](../Gobernanza/Estado-y-gobernanza.md); `/health` está mapeado en gateway y API, pero el arranque/CI, TLS y el tráfico real requieren evidencias de ejecución. La configuración `staged` no acredita despliegue.
+
 ## ADR-015 — Separación de repositorios y límites de publicación
 
 **Estado:** Aprobada  
@@ -9,7 +11,7 @@
 
 En `kynakee-platform`:
 
-- `Kynakee.Gateway` es un proyecto independiente y constituye la única entrada HTTP publicada.
+- `Kynakee.Gateway` es un proyecto independiente y constituye la única entrada HTTP de la aplicación publicada; en desarrollo también se publican puertos de infraestructura y el inspector de ngrok.
 - `Kynakee.Api` aloja los módulos de negocio y solo es accesible dentro de la red de Compose.
 - El gateway y la API se ejecutan como contenedores separados.
 - Este repositorio no compila ni arranca `kynakee-web`.
@@ -25,16 +27,16 @@ Se mantienen tres archivos Compose con nombres estables:
 - `docker/docker-compose.staged.yml` se conserva para una futura necesidad de staging/pre-production, pero no se despliega actualmente.
 - `docker/docker-compose.prod.yml` para producción en Hetzner, rama `master`.
 
-El Compose de backend publica únicamente el tráfico necesario a través de Traefik y el gateway. PostgreSQL, Redis, RabbitMQ, Qdrant y la API permanecen internos. Los secretos se suministran mediante archivos `.env.*` locales y nunca se versionan.
+En producción, el objetivo es publicar el tráfico de negocio a través de Traefik y el gateway. En el Compose de desarrollo PostgreSQL, Redis, RabbitMQ, Qdrant y el inspector de ngrok tienen puertos publicados en el host; la API permanece interna. Los secretos se suministran mediante archivos `.env.*` locales y nunca se versionan.
 
 ## ADR-017 — Health checks y validación de CI
 
 **Estado:** Aprobada  
 **Fecha:** 2026-09-02
 
-`Kynakee.Gateway` y `Kynake.Api` exponen `GET /health` mediante ASP.NET Core Health Checks. Los Compose usan este endpoint para comprobar la disponibilidad de sus servicios HTTP.
+`Kynakee.Gateway` y `Kynakee.Api` exponen `GET /health` mediante ASP.NET Core Health Checks. Los Compose usan este endpoint para comprobar la disponibilidad de sus servicios HTTP.
 
-La integración continua se ejecuta en GitHub Actions para `develop` y para pull requests dirigidas a `develop` o `master`. Usa .NET 10, restaura y compila `Kynake.slnx`, ejecuta las pruebas con cobertura Cobertura y falla si la cobertura global de líneas es inferior al 80 %.
+La integración continua se ejecuta en GitHub Actions para `develop` y para pull requests dirigidas a `develop` o `master`. Usa .NET 10, restaura y compila `Kynakee.slnx`, ejecuta las pruebas con cobertura Cobertura y falla si la cobertura global de líneas es inferior al 80 %.
 
 ## ADR-018 — Preparación inicial de production en Hetzner
 
