@@ -35,12 +35,26 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Staging
       ASPNETCORE_URLS: http://+:8080
+      Authentication__SigningKey: ${AUTHENTICATION_SIGNING_KEY:?AUTHENTICATION_SIGNING_KEY must be set}
+      Authentication__Issuer: ${AUTHENTICATION_ISSUER:-Kynakee}
+      Authentication__Audience: ${AUTHENTICATION_AUDIENCE:-KynakeeClients}
+      ConnectionStrings__Redis: redis:6379
+      RateLimiting__PermitLimit: ${GATEWAY_RATE_LIMIT_PERMIT_LIMIT:-100}
+      RateLimiting__WindowSeconds: ${GATEWAY_RATE_LIMIT_WINDOW_SECONDS:-60}
       ReverseProxy__Clusters__api__Destinations__api__Address: http://kynakee-api:8080/
     expose:
       - "8080"
     depends_on:
       kynakee-api:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     labels:
       - traefik.enable=true
       - traefik.docker.network=kynakee-staged
@@ -61,10 +75,20 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Staging
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Authentication__SigningKey: ${AUTHENTICATION_SIGNING_KEY:?AUTHENTICATION_SIGNING_KEY must be set}
+      Authentication__Issuer: ${AUTHENTICATION_ISSUER:-Kynakee}
+      Authentication__Audience: ${AUTHENTICATION_AUDIENCE:-KynakeeClients}
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       ConnectionStrings__Redis: redis:6379
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       Qdrant__Endpoint: http://qdrant:6333
+      MinIO__Enabled: "true"
+      MinIO__Endpoint: ${MINIO_ENDPOINT}
+      MinIO__AccessKey: ${MINIO_ACCESS_KEY}
+      MinIO__SecretKey: ${MINIO_SECRET_KEY}
+      MinIO__Bucket: ${MINIO_BUCKET}
+      MinIO__UseSsl: "${MINIO_USE_SSL}"
+      MinIO__MaxObjectBytes: ${MINIO_MAX_OBJECT_BYTES}
     expose:
       - "8080"
     depends_on:

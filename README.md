@@ -5,7 +5,11 @@
 
 Kynakee is an AI-native platform designed to transform construction site observations, photos, videos, plans, measurements, and conversations into a complete and traceable commercial proposal.
 
-The platform combines AI agents, a global construction knowledge base, MCP provider networks, planning engines, project valuation, and conversational interfaces to help construction professionals generate high-quality budgets significantly faster than traditional methods. 【1-d473ea】【1-393aad】
+> **Implementation status:** This README describes the target product as well as the repository structure. The [current-state and governance register](docs/Gobernanza/Estado-y-gobernanza.md) distinguishes implemented code from compilation, tests, operational verification and pending work. Product capabilities below are goals unless that register identifies evidence for them.
+
+Identity, Billing and Bots have concrete domain and EF persistence implementations; their validation boundaries are recorded in the governance register. Bots domain, data and persistence compile and have passed 55 unit tests and 27 PostgreSQL 17 integration tests. Its migration was applied only to ephemeral test databases. Real Telegram/WhatsApp authentication and messaging remain pending; these directed checks do not establish a successful global API/solution build or an operational end-to-end flow.
+
+The planned platform combines AI agents, a global construction knowledge base, MCP provider networks, planning engines, project valuation, and conversational interfaces to help construction professionals generate high-quality budgets significantly faster than traditional methods. 【1-d473ea】【1-393aad】
 
 ---
 
@@ -91,7 +95,7 @@ Supported channels:
 - Telegram
 - Web Application
 
-The same project can be managed through any channel. 【1-d473ea】【1-393aad】
+The goal is to manage the same project through any channel. 【1-d473ea】【1-393aad】
 
 ---
 
@@ -99,7 +103,7 @@ The same project can be managed through any channel. 【1-d473ea】【1-393aad�
 
 Scheduling is a core capability.
 
-Kynakee generates:
+The target platform generates:
 
 - Activity sequencing
 - Dependencies
@@ -138,7 +142,7 @@ This allows knowledge reuse across countries, regions, and languages. 【1-d473e
 
 # Operational Workflow
 
-Kynakee implements a 9-phase operational model:
+The Projects domain models a 9-phase operational lifecycle; the end-to-end API workflow is not yet operational:
 
 | Phase | Name |
 |---------|---------|
@@ -246,7 +250,9 @@ Cloudflare
 
 # AI Architecture
 
-Kynakee uses specialized agents through Microsoft Agents Framework. 【1-393aad】【1-534902】
+The AI module exposes specialized operations through `IKynakeeAgentService`. Provider-backed orchestration is implemented for Capture, Scope, Production, Planning, Valuation, Offer, Conversation, and embeddings, with typed response validation and persisted run auditing. This is not yet proof of production readiness: provider credentials, model/modality compatibility, live integration behavior, automatic fallback, and credit charging remain unverified or pending.
+
+Capture can resolve tenant/project-owned media through the trusted Projects storage boundary and prepare it for provider transport. Gemini uses Files API uploads; OpenAI-compatible transport currently supports inline images only. Unsupported media/protocol combinations are rejected. Although the transport serializes trusted Gemini file references for supported MIME classes, successful PDF/audio/video analysis still depends on actual configured model support and has not been validated against live providers. Other agent request contracts currently accept structured text context rather than attachments.
 
 ## Agents
 
@@ -267,7 +273,7 @@ Each agent serves a specific phase of the workflow. 【1-393aad】【1-534902】
 
 # Knowledge Base
 
-The Knowledge Base stores:
+The intended Knowledge Base stores:
 
 ```text
 Canonical Concepts
@@ -297,7 +303,7 @@ Prices are determined dynamically during project valuation. 【1-13d16a】【1-d
 
 # MCP Provider Network
 
-Kynakee integrates a distributed MCP ecosystem.
+The intended MCP integration uses a distributed provider ecosystem; it is not yet operational.
 
 Providers can expose:
 
@@ -341,7 +347,7 @@ User
 Project
 ```
 
-Data isolation is enforced by TenantId and Row-Level Security principles. 【1-d473ea】【1-393aad】【1-534902】
+The Projects EF model defines tenant and soft-delete query filters. JWT-based isolation and database Row-Level Security are target requirements, not yet verified end to end. 【1-d473ea】【1-393aad】【1-534902】
 
 ---
 
@@ -356,7 +362,7 @@ OWASP
 PSD2
 ```
 
-Key requirements implemented:
+Key requirements for implementation and verification:
 
 - Human oversight
 - Explainability
@@ -402,12 +408,16 @@ kynakee-platform/                  # Backend repository
 │       ├── AI
 │       ├── Bots
 │       ├── Billing
-│       └── Identity
+│       ├── Identity
+│       └── Shared                    # Shared Kernel project
 ├── tests/
+│   ├── Kynakee.ArchitectureTests
 │   ├── Kynakee.UnitTests
 │   ├── Kynakee.IntegrationTests
 │   ├── Kynakee.ContractTests
 │   └── Kynakee.E2ETests          # Backend/system E2E and API lifecycle validation
+├── Directory.Build.props          # Shared .NET build properties
+├── Directory.Packages.props       # Central package version management
 ├── docker/
 │   ├── docker-compose.dev.yml
 │   ├── docker-compose.staged.yml
@@ -433,7 +443,7 @@ The platform is split between two repositories and independently deployed applic
 - `kynakee-platform`: .NET 10 backend, API gateway, business logic, background jobs, and shared infrastructure.
 - `kynakee-web`: Next.js 15 frontend for the user experience.
 
-Both repositories are deployed independently, but the web application interacts with the platform through the gateway (`REST` and `SignalR`). The backend Compose starts `Kynakee.Gateway` and `Kynakee.Api` together, sharing platform services (PostgreSQL, Redis, RabbitMQ, Qdrant, etc.). The gateway is the published HTTP entry point and the API is internal to the Compose network. The current gateway project is scaffolded; YARP routing is implemented in US-010. This repository does not build or start `kynakee-web`; the frontend repository must be started with its own Compose configuration.
+The gateway is the published application HTTP entry point and the API is internal to the Compose network. The current gateway has a YARP catch-all route, but JWT validation, rate limiting and end-to-end routing are not verified. This repository does not build or start `kynakee-web`; the frontend repository must be started with its own Compose configuration.
 
 E2E validation lives in both repositories:
 
@@ -452,7 +462,7 @@ The backend repository maintains Compose files for development, production, and 
 | Staged (not deployed) | `staged` | `docker/docker-compose.staged.yml` | Gateway |
 | Production | `master` | `docker/docker-compose.prod.yml` | Gateway via Traefik |
 
-The gateway is the only published application endpoint. `Kynakee.Api` and the infrastructure services remain internal to the Docker network. Environment files are templates only; copy the appropriate `.env.*.example`, replace every `CHANGE_ME` value locally, and do not commit the resulting file.
+The gateway is the published application entry point; `Kynakee.Api` is internal to the Docker network. The development Compose also publishes infrastructure and ngrok inspector ports to the host. Environment files are templates only; copy the appropriate `.env.*.example`, replace every `CHANGE_ME` value locally, and do not commit the resulting file.
 
 The complete record of these decisions is maintained in [`docs/ADR/kynakee-adrs-part3.md`](docs/ADR/kynakee-adrs-part3.md), and the Hetzner procedure is maintained in [`docs/Deployment/US-005-Hetzner-Runbook.md`](docs/Deployment/US-005-Hetzner-Runbook.md).
 
@@ -492,6 +502,10 @@ Observe Complete Traceability
 ---
 
 # Status
+
+The following labels describe approved design documents, **not** feature delivery. For evidence and acceptance criteria see [Estado del repositorio y criterios de gobernanza](docs/Gobernanza/Estado-y-gobernanza.md). Projects domain and EF mappings exist in code; Projects migrations and persistence tests remain postponed. The global host/solution build is not revalidated by the directed Bots checks. No deployed end-to-end flow is claimed.
+
+**Bots foundation:** domain, data model and persistence are implemented and compiled, with 55 passing unit tests and 27 passing PostgreSQL 17 integration tests. The initial migration was generated and applied only in ephemeral test containers, not existing databases. Real Telegram/WhatsApp authentication, webhooks, messaging, command dispatch and integration events remain pending. See [Bots scope and reproducible evidence](docs/Gobernanza/Estado-y-gobernanza.md#frontera-de-dominio-datos-y-persistencia-de-bots).
 
 ```text
 Version: MVP

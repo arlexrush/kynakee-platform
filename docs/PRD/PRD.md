@@ -3,6 +3,8 @@
 ### AI-Powered Construction Budget Generation Platform
 **Version 1.0 · 2026-08-20 · Confidential**
 
+> **Product requirements, not release status:** This document specifies the target product and acceptance criteria. See [current state and governance](../Gobernanza/Estado-y-gobernanza.md) before treating a feature, channel, compliance requirement or milestone as delivered. Projects phase rules and EF mappings exist in code, but there is no mapped project creation API or verified persistence workflow; the other modules are incomplete. User journeys and business metrics below are targets, not measured production outcomes.
+
 ---
 
 ## Table of Contents
@@ -168,7 +170,7 @@ Users must be able to access all core functionality from WhatsApp, Telegram, and
 
 ### FR-002: Multi-Tenant Architecture
 
-- **FR-002.1:** Every tenant has isolated data (TenantId on all entities)
+- **FR-002.1:** Every tenant has isolated tenant-owned data (`TenantId` required on those entities). Genuinely global KnowledgeBase resources are shared; optional owner identifiers record provenance, not access rights.
 - **FR-002.2:** Tenant types: Individual, SME, Company, Promoter, Particular
 - **FR-002.3:** User roles: Owner, Admin, Technician, Commercial, Viewer
 - **FR-002.4:** CompanySettings per tenant: margins, profit, VAT, contingency

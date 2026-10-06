@@ -1,13 +1,17 @@
+using Kynakee.Api.Endpoints;
+
 namespace Kynakee.Api
 {
-    public class Program
+    internal sealed class Program
     {
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Add Dependence Container extensions
+            builder.Services.AddApiDependencies(builder.Configuration);
+
             // Add services to the container.
-            builder.Services.AddAuthorization();
             builder.Services.AddHealthChecks();
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -21,28 +25,16 @@ namespace Kynakee.Api
                 app.MapOpenApi();
             }
 
+            app.UseRateLimiter();
+            app.UseStaticFiles();
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapHealthChecks("/health");
-
-            var summaries = new[]
-            {
-                "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-            };
-
-            app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-            {
-                var forecast = Enumerable.Range(1, 5).Select(index =>
-                    new WeatherForecast
-                    {
-                        Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                        TemperatureC = Random.Shared.Next(-20, 55),
-                        Summary = summaries[Random.Shared.Next(summaries.Length)]
-                    })
-                    .ToArray();
-                return forecast;
-            })
-            .WithName("GetWeatherForecast");
+            app.MapIdentityEndpoints();
+            app.MapBillingEndpoints();
+            app.MapFallbackToFile("/modelo-datos/{*path:nonfile}", "modelo-datos/index.html");
+                                      
 
             app.Run();
         }

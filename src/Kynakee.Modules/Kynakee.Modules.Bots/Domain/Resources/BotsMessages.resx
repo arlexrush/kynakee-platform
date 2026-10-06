@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="TenantRequired" xml:space="preserve"><value>The tenant identifier is required.</value></data>
+  <data name="UserRequired" xml:space="preserve"><value>An authenticated user identifier is required.</value></data>
+  <data name="CreatorInvalid" xml:space="preserve"><value>The creator identifier cannot be empty.</value></data>
+  <data name="UpdaterInvalid" xml:space="preserve"><value>The updater identifier cannot be empty.</value></data>
+  <data name="ExternalIdInvalid" xml:space="preserve"><value>The external conversation identifier is required and cannot exceed 100 characters.</value></data>
+  <data name="ChannelInvalid" xml:space="preserve"><value>The bot channel is invalid.</value></data>
+  <data name="ProjectIdInvalid" xml:space="preserve"><value>The project identifier is invalid.</value></data>
+  <data name="VerbosityInvalid" xml:space="preserve"><value>The bot verbosity is invalid.</value></data>
+  <data name="ConversationDeleted" xml:space="preserve"><value>A deleted conversation cannot be modified.</value></data>
+  <data name="ConversationCompleted" xml:space="preserve"><value>A completed conversation cannot be modified.</value></data>
+  <data name="ConversationRequired" xml:space="preserve"><value>The conversation identifier is required.</value></data>
+  <data name="DirectionInvalid" xml:space="preserve"><value>The message direction is invalid.</value></data>
+  <data name="ContentTypeInvalid" xml:space="preserve"><value>The message content type is invalid.</value></data>
+  <data name="ContentRequired" xml:space="preserve"><value>The message must include content appropriate to its type.</value></data>
+  <data name="MediaUrlInvalid" xml:space="preserve"><value>The media URL must be an absolute HTTPS URL no longer than 500 characters.</value></data>
+  <data name="ParsedCommandInvalid" xml:space="preserve"><value>The parsed command cannot exceed 100 characters and can only be supplied for a command message.</value></data>
+</root>

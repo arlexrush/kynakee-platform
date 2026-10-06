@@ -14,10 +14,12 @@ The repository uses three branches/environments: develop for development, staged
 ### Entities
 - Every persistent entity MUST inherit `BaseEntity<TId>` with: `TenantId`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`, `DeletedAt`, `IsDeleted`
 - NEVER create entities without these fields
+- In project documentation, persistent entities must be documented using `BaseEntity<TId>`, not `Entity<TId>`. Review and correct all occurrences of `Entity<TId>` in the documentation.
 
 ### Handlers
 - Every command/query handler MUST return `Result<T>`
 - NEVER throw exceptions for business logic — use `Result.Failure(Error.XXX(...))`
+- Use `Result<T>` in handlers as per .github/copilot-instructions.md.
 
 ### Validation
 - Every command MUST have a corresponding `AbstractValidator<TCommand>` class
@@ -30,10 +32,13 @@ The repository uses three branches/environments: develop for development, staged
 ### AI Operations
 - NEVER call Microsoft Agents Framework, DeepSeek, Gemini, or OpenAI directly
 - ALWAYS use `IKynakeeAgentService` for all AI operations
+- For MCP, each provider belongs to an Identity tenant, and their MCP Servers are registered as separate resources. Prioritize the query function and postpone the provider's economic compensation. The Internet fallback must perform AI searches (e.g., Gemini) always passing through `IKynakeeAgentService`, without direct calls from the MCP module to the AI provider.
 
 ### MCP Operations
 - NEVER call MCP provider endpoints directly via HttpClient
 - ALWAYS use `IMCPClient` for all price queries
+- Design the query contract from the client without conditioning it on the existing MCP Server; the user will adapt their MCP Server later. The query must support providers of materials, equipment, labor, and other components.
+- Price queries serve primarily to value projects but allow an optional `ProjectId` for queries from the provider dashboard. Only the Owner/Admin of the owning tenant can manage their providers and servers.
 
 ### Integration Events
 - NEVER publish directly to RabbitMQ
@@ -53,17 +58,53 @@ The repository uses three branches/environments: develop for development, staged
 - ALL log entries MUST include `TenantId`, `CorrelationId`, `UserId` via Serilog `LogContext`
 - When in project context, also include `ProjectId`
 
+### Interactive Progress
+- Advance interactively step by step: iterate each step of the plan until 100% completion and request explicit authorization before starting the next step.
+- Each step MUST include the complete and compilable implementation of the involved classes, not just the folder design or structure declaration.
+- Verify that each registered type has a visible concrete implementation; do not infer that compilation confirms the requested implementation.
+
+### Dependency Registration
+- Use the global container extension `KynakeeApiDependenceExtensions.AddApiDependencies` to register dependencies; maintain this single composition point when adding services.
+
+### EF Core Configuration
+- Separate EF Core configuration from the `DbContext` by using `IEntityTypeConfiguration<TEntity>` files within the `Infrastructure/Persistence/Configurations` folder, keeping the `DbContext` as the registration point for configurations.
+
+### Documentation Governance
+- Ensure all repository documentation aligns with existing code and serves as governance and verifiable guidance for pending development; distinguish between implemented, compiled, tested, and pending states.
+
+### Quick Checks
+- Prefer quick and scoped checks on edited files to prioritize updating the rest of the documentation.
+
+### Migration Verification
+- Before asserting that a migration exists, check the actual files on disk; ensure that the Migrations folder is not empty, as it may contain unreported migrations.
+- In the current work on Identity, postpone the application of the migration to any database until further authorization; maintain it generated and compiled without declaring application or persistence via verified migrations.
+
+### Bots Authentication
+- Users MUST authenticate via Telegram or WhatsApp before establishing a business conversation; the verified identity determines the associated tenant.
+- For this phase of Bots, plan for migration generation and testing in ephemeral PostgreSQL, without applying to existing databases.
+
+## Test Naming
+- ALL C# test methods MUST use PascalCase without underscores, hyphens, or other separators
+- Use the structure `[Subject][Scenario][ExpectedBehavior]`
+- Examples: `ConstructorShouldInitializeIdentityAndTenant`, `GenericFailureShouldContainErrorAndFailureState`
+- Apply this convention consistently to unit, contract, integration, architecture, and E2E test projects
+
 ---
 
 ## Project Aggregate — CRITICAL RULES
 
-The `Project` class is the aggregate root that owns all 9 phase entities.
+The `Project` class is the aggregate root that owns all 9 phase entities.  
 Phase order: Initialization → Capture → Context → Scope → Production → Planning → Valuation → Review → Offer
 1. **ALL phase transition logic lives inside the `Project` aggregate** — never in handlers or services
 2. **Modifying a WorkItem MUST call `InvalidateDownstreamResults()`** which sets `Schedule`, `Valuation`, `Review`, `Offer` to null
 3. **ALL Project mutations go through aggregate methods** — never modify child entities directly via DbContext
 4. **READ queries use projections (DTOs)** — never load the full aggregate for reads
 5. **WRITE commands load the full aggregate** via `IProjectRepository.GetByIdWithFullStateAsync()`
+6. **Follow the reviewed documentation strictly** when implementing the `Project` class, ensuring that all phase mutations are encapsulated within the aggregate.
+7. **Transition/State Testing:** In the current work on the `Project` aggregate, tests for the transition/state behavior `Paused` are postponed and will be added later. Do not treat this as a blocker for continuing code review, but do not assert that the behavior is tested.
+8. **EF Core Migrations and Persistence Testing:** In the current review of Projects, postpone both EF Core migrations and persistence tests; continue with code corrections without declaring persistence that depends on those migrations as completed or operational.
+9. **APU Construction Rule:** The APU is constructed from the WorkItem unit; the output unit of APUAssignment must exactly match the unit of the item, without implicit conversions.
+10. **Prioritize domain and data models across all modules; postpone unit tests for the invariants of `Project.SetOffer` and `Project.SendOffer` to a later phase without asserting that the gap is tested or closed 100%.**
 
 ---
 
@@ -74,6 +115,7 @@ Phase order: Initialization → Capture → Context → Scope → Production →
 4. TokenGateBehavior (reserve credits — AI commands only)
 5. TransactionBehavior (DB transaction — commands only)
 6. DomainEventDispatchBehavior (after commit)
+
 ---
 
 ## File Structure Pattern
@@ -185,4 +227,24 @@ result.Error!.Type switch
 
 ## Task Closure Confirmation
 - For the closure of US-003, tasks numbered 2, 3, 4, and 6 are confirmed resolved. They should not be treated as pending again unless new validation provides contrary evidence.
+
+---
+
+## Naming Convention Update
+- Rename `IPostCommitActionQueue`/`PostCommitActionQueue` to `IPostCommitActionDispatcher`/`PostCommitActionDispatcher` as per .NET conventions; do not reintroduce the previous names.
+
+---
+
+## Module Implementation Process
+- Implement the DbContext for each of the seven modules one by one, following the documentation, patterns, and best practices.
+- Iterate until reaching 100% completion for each module; only then present a summary and request explicit authorization to start the next module.
+
+---
+
+## KnowledgeBase APU Templates
+- In the APU templates of KnowledgeBase, maintain an explicit and unique order of components; the aggregate assigns the position (SortOrder) and EF must persist it and respect it when reconstructing the collection.
+
+## Additional Prioritization
+- Prioritize completing domain models, data, and persistence for all modules and finalize the Behaviors. 
+- Close the local preparation of Billing and document its boundary explicitly; do not implement cross-cutting infrastructure for Outbox/transport and long-term integration between Identity and Billing until a later phase, indicating pending tasks without declaring full integration.
 

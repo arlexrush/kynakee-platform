@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="QueryInvalid" xml:space="preserve"><value>The price query is invalid.</value></data>
+  <data name="IdentityRequired" xml:space="preserve"><value>An authenticated tenant and user are required to query prices.</value></data>
+  <data name="QuoteInvalid" xml:space="preserve"><value>The provider returned an invalid or incompatible quote.</value></data>
+  <data name="NoProviders" xml:space="preserve"><value>No available providers match this query.</value></data>
+  <data name="ProviderUnavailable" xml:space="preserve"><value>The provider network could not return a valid quote.</value></data>
+  <data name="ServerNotConfigured" xml:space="preserve"><value>The server endpoint or credential reference is not authorized.</value></data>
+</root>

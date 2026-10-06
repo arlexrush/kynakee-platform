@@ -67,6 +67,38 @@ services:
     networks:
       - kynakee-dev
 
+  minio:
+    image: minio/minio:latest
+    container_name: kynakee-minio-dev
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio-dev-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - kynakee-dev
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: kynakee-minio-init-dev
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >-
+      /bin/sh -c "mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} && mc mb --ignore-existing local/${MINIO_BUCKET}"
+    networks:
+      - kynakee-dev
+
   kynakee-api:
     image: mcr.microsoft.com/dotnet/sdk:10.0
     container_name: kynakee-api-dev
@@ -75,10 +107,20 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:${API_HTTP_PORT}
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Authentication__SigningKey: ${AUTHENTICATION_SIGNING_KEY:?AUTHENTICATION_SIGNING_KEY must be set}
+      Authentication__Issuer: ${AUTHENTICATION_ISSUER:-Kynakee}
+      Authentication__Audience: ${AUTHENTICATION_AUDIENCE:-KynakeeClients}
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       ConnectionStrings__Redis: redis:6379
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       Qdrant__Endpoint: http://qdrant:6333
+      MinIO__Enabled: "true"
+      MinIO__Endpoint: http://minio:9000
+      MinIO__AccessKey: ${MINIO_ROOT_USER}
+      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD}
+      MinIO__Bucket: ${MINIO_BUCKET}
+      MinIO__UseSsl: "false"
+      MinIO__MaxObjectBytes: ${MINIO_MAX_OBJECT_BYTES}
     expose:
       - "${API_HTTP_PORT}"
     volumes:
@@ -94,6 +136,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      minio-init:
+        condition: service_completed_successfully
     networks:
       - kynakee-dev
 
@@ -105,6 +149,12 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       ASPNETCORE_URLS: http://+:${GATEWAY_HTTP_PORT}
+      Authentication__SigningKey: ${AUTHENTICATION_SIGNING_KEY:?AUTHENTICATION_SIGNING_KEY must be set}
+      Authentication__Issuer: ${AUTHENTICATION_ISSUER:-Kynakee}
+      Authentication__Audience: ${AUTHENTICATION_AUDIENCE:-KynakeeClients}
+      ConnectionStrings__Redis: redis:6379
+      RateLimiting__PermitLimit: ${GATEWAY_RATE_LIMIT_PERMIT_LIMIT:-100}
+      RateLimiting__WindowSeconds: ${GATEWAY_RATE_LIMIT_WINDOW_SECONDS:-60}
       ReverseProxy__Clusters__api__Destinations__api__Address: http://kynakee-api:${API_HTTP_PORT}/     
     ports:
       - "${GATEWAY_HOST_PORT}:${GATEWAY_HTTP_PORT}"
@@ -115,6 +165,14 @@ services:
     depends_on:
       kynakee-api:
         condition: service_started
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:${GATEWAY_HTTP_PORT}/health/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - kynakee-dev
 
@@ -135,6 +193,7 @@ services:
 
 volumes:
   postgres-dev-data:
+  minio-dev-data:
   qdrant-dev-data:
   redis-dev-data:
   rabbitmq-dev-data:

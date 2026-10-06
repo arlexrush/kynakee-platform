@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="TenantRequired" xml:space="preserve"><value>The tenant identifier is required.</value></data>
+  <data name="ProjectIdInvalid" xml:space="preserve"><value>The project identifier is invalid.</value></data>
+  <data name="AgentTypeInvalid" xml:space="preserve"><value>The agent type is invalid.</value></data>
+  <data name="ModelIdInvalid" xml:space="preserve"><value>The model identifier is invalid.</value></data>
+  <data name="ProviderInvalid" xml:space="preserve"><value>The provider name is invalid.</value></data>
+  <data name="CreatedByInvalid" xml:space="preserve"><value>The creator identifier cannot be empty.</value></data>
+  <data name="UpdatedByInvalid" xml:space="preserve"><value>The updater identifier cannot be empty.</value></data>
+  <data name="RunNotQueued" xml:space="preserve"><value>Only a queued agent run can be completed or failed.</value></data>
+  <data name="UsageInvalid" xml:space="preserve"><value>Token counts, duration and credits cannot be negative.</value></data>
+  <data name="FallbackReasonRequired" xml:space="preserve"><value>A reason is required when a fallback model is used.</value></data>
+  <data name="FallbackReasonUnexpected" xml:space="preserve"><value>A fallback reason can only be provided when a fallback model is used.</value></data>
+  <data name="RunNotReviewable" xml:space="preserve"><value>Only a completed agent run can be reviewed.</value></data>
+  <data name="ReviewerRequired" xml:space="preserve"><value>The human reviewer identifier is required.</value></data>
+  <data name="ReviewTimestampInvalid" xml:space="preserve"><value>The review timestamp must be UTC.</value></data>
+  <data name="AlreadyReviewed" xml:space="preserve"><value>The agent run has already been reviewed.</value></data>
+  <data name="FallbackReasonTooLong" xml:space="preserve"><value>The fallback reason cannot exceed 200 characters.</value></data>
+  <data name="AiDisabled" xml:space="preserve"><value>AI services are disabled by configuration.</value></data>
+  <data name="AgentConfigurationMissing" xml:space="preserve"><value>The requested AI agent is not configured.</value></data>
+  <data name="PremiumModelNotConfigured" xml:space="preserve"><value>The requested premium AI model is not configured for this agent.</value></data>
+  <data name="ModelConfigurationMissing" xml:space="preserve"><value>The requested AI model is not configured.</value></data>
+  <data name="ProviderConfigurationMissing" xml:space="preserve"><value>The AI provider configuration is unavailable.</value></data>
+  <data name="ChatCapabilityRequired" xml:space="preserve"><value>The selected model does not support chat completions.</value></data>
+  <data name="EmbeddingCapabilityRequired" xml:space="preserve"><value>The selected model does not support embeddings.</value></data>
+  <data name="ChatRequestInvalid" xml:space="preserve"><value>The chat request is invalid.</value></data>
+  <data name="EmbeddingTextRequired" xml:space="preserve"><value>Text is required to generate an embedding.</value></data>
+  <data name="ProviderRequestFailed" xml:space="preserve"><value>The configured AI provider could not process the request.</value></data>
+  <data name="ProviderResponseInvalid" xml:space="preserve"><value>The AI provider returned an invalid response.</value></data>
+  <data name="ProviderTimeout" xml:space="preserve"><value>The AI provider did not respond before the configured timeout.</value></data>
+  <data name="EmbeddingDimensionsInvalid" xml:space="preserve"><value>The AI provider returned an embedding with an invalid dimension or value.</value></data>
+  <data name="VisionCapabilityRequired" xml:space="preserve"><value>The selected model does not support the requested media modality.</value></data>
+  <data name="VideoRequiresGemini" xml:space="preserve"><value>Video input requires a Gemini provider; the OpenAI-compatible transport supports images only.</value></data>
+  <data name="ModelCapabilitiesInsufficient" xml:space="preserve"><value>The selected model does not support every modality required by this request.</value></data>
+  <data name="MediaTypeUnsupported" xml:space="preserve"><value>The media MIME type is missing or unsupported.</value></data>
+  <data name="MediaTransportUnsupported" xml:space="preserve"><value>The selected provider transport does not yet support this media format.</value></data>
+  <data name="MediaSourceUnavailable" xml:space="preserve"><value>The trusted media source could not resolve the requested file.</value></data>
+  <data name="MediaTooLarge" xml:space="preserve"><value>The media file exceeds the configured size limit.</value></data>
+  <data name="MediaMetadataMismatch" xml:space="preserve"><value>The media MIME type does not match the trusted source metadata.</value></data>
+  <data name="CaptureRequestInvalid" xml:space="preserve"><value>The capture request must include a valid tenant, project and at least one text or media input.</value></data>
+  <data name="AgentResponseInvalid" xml:space="preserve"><value>The AI provider response does not match the required agent contract.</value></data>
+  <data name="CaptureMediaTransportPending" xml:space="preserve"><value>Capture media was resolved securely, but its provider transport is not implemented for the requested modality.</value></data>
+  <data name="AgentOperationPending" xml:space="preserve"><value>This AI agent operation is not implemented yet.</value></data>
+</root>

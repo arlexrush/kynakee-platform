@@ -2,6 +2,8 @@
 
 Este runbook cubre el primer despliegue de `kynakee-platform` en Hetzner. El único entorno remoto será production; development continuará ejecutándose localmente.
 
+> **Estado:** procedimiento previsto, no acta de despliegue realizado. Consulte [Estado y gobernanza](../Gobernanza/Estado-y-gobernanza.md). Antes de ejecutar `up` o declarar producción disponible, verificar la compilación de la solución (actualmente bloqueada por seis DbContext pendientes), resolución de dependencias y destino YARP del entorno. Registrar salida de `docker compose config`, salud, TLS y pruebas de tráfico en el servidor. La existencia de Compose y `/health` no verifica la API de negocio ni la persistencia; las migraciones y pruebas EF de Projects siguen pospuestas.
+
 ## Topología prevista
 
 | Entorno | Servidor | Host público | Compose | Rama |
