@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="ConceptIdRequired" xml:space="preserve"><value>A canonical concept identifier is required.</value></data>
+  <data name="ConceptIdInvalid" xml:space="preserve"><value>A canonical concept identifier must contain at most 100 uppercase letters, digits or underscores.</value></data>
+  <data name="RegionRequired" xml:space="preserve"><value>A geographic region is required.</value></data>
+  <data name="RegionInvalid" xml:space="preserve"><value>A geographic region must use an ISO 3166-2 code.</value></data>
+  <data name="UnitRequired" xml:space="preserve"><value>A measurement unit is required.</value></data>
+  <data name="UnitInvalid" xml:space="preserve"><value>A measurement unit must use a valid code of at most 20 characters.</value></data>
+  <data name="ConfidenceInvalid" xml:space="preserve"><value>Confidence must be between zero and one with at most three decimal places.</value></data>
+  <data name="LanguageInvalid" xml:space="preserve"><value>A language code must contain two letters and may include a two-letter region.</value></data>
+  <data name="TranslationNameInvalid" xml:space="preserve"><value>A translation name is required and must not exceed 300 characters.</value></data>
+  <data name="HoursPerUnitInvalid" xml:space="preserve"><value>Production hours per unit must fit DECIMAL(8,4) and be positive.</value></data>
+  <data name="CrewDescriptionInvalid" xml:space="preserve"><value>A crew description must not exceed 200 characters.</value></data>
+  <data name="ComponentDescriptionInvalid" xml:space="preserve"><value>A component description is required and must not exceed 300 characters.</value></data>
+  <data name="ComponentTypeInvalid" xml:space="preserve"><value>The component type is not supported.</value></data>
+  <data name="ComponentYieldInvalid" xml:space="preserve"><value>The component quantity per unit must fit DECIMAL(10,6) and be positive.</value></data>
+  <data name="CategoryInvalid" xml:space="preserve"><value>A category is required and must not exceed 100 characters.</value></data>
+  <data name="SubcategoryInvalid" xml:space="preserve"><value>A subcategory must not exceed 100 characters.</value></data>
+  <data name="TranslationRequired" xml:space="preserve"><value>A canonical concept requires at least one translation.</value></data>
+  <data name="TranslationDuplicate" xml:space="preserve"><value>A translation for this language already exists.</value></data>
+  <data name="TemplateDescriptionInvalid" xml:space="preserve"><value>An APU template description is required and must not exceed 500 characters.</value></data>
+  <data name="ComponentsRequired" xml:space="preserve"><value>An APU template requires at least one component.</value></data>
+  <data name="ProjectTypeInvalid" xml:space="preserve"><value>The project type is not supported.</value></data>
+  <data name="TemplateSourceInvalid" xml:space="preserve"><value>The APU template source is not supported.</value></data>
+  <data name="OwnerIdInvalid" xml:space="preserve"><value>A provided owner identifier cannot be empty.</value></data>
+  <data name="UsageCountExceeded" xml:space="preserve"><value>The usage count cannot be increased further.</value></data>
+  <data name="TemplateCountExceeded" xml:space="preserve"><value>The template count cannot be increased further.</value></data>
+  <data name="EmbeddingInvalid" xml:space="preserve"><value>An embedding must contain 768 finite values.</value></data>
+  <data name="EntityDeleted" xml:space="preserve"><value>A deleted global resource cannot be modified.</value></data>
+</root>

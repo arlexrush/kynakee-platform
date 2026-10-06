@@ -3,6 +3,8 @@
 ### 18-Month Plan · MVP to Scale · .NET 10 · Next.js 15 · Hetzner
 **Version 1.0 · 2026-08-20 · Confidential**
 
+> **Roadmap status:** All phase deliverables and dates below are targets, not evidence of completion. See [current state and governance](../Gobernanza/Estado-y-gobernanza.md). The Projects domain and EF mappings exist, but no project creation endpoint, applied migration or tested end-to-end flow has been established. Bots domain/data/persistence now compile and pass directed tests; this does not establish a successful global host build or an end-to-end channel flow. Resume Projects migrations and persistence tests only after explicit authorization.
+
 ---
 
 ## Table of Contents
@@ -52,7 +54,8 @@ This Technical Roadmap defines the 18-month development plan for the Kynakee pla
 
 - GitHub repository with Gitflow + CI pipeline (80% coverage gate)
 - `docker-compose.dev.yml` with all 7 services (PostgreSQL, Qdrant, Redis, RabbitMQ, NGrok)
-- .NET 10 solution with all 7 module projects + shared kernel
+- .NET 10 solution with 7 module projects, Shared Kernel, internal API host, independent YARP Gateway, and dedicated test projects
+- Shared Kernel validation completed in the existing unit, contract and architecture test projects (132 tests passed in the latest recorded run)
 - 6 MediatR pipeline behaviors in correct order
 - YARP gateway with JWT + CorrelationId + rate limiting
 - Identity module: register + login endpoints

@@ -6,16 +6,31 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="xunit.v3"/>
+    <PackageReference Include="xunit.runner.visualstudio"/>
+    <PackageReference Include="FluentAssertions"/>
+    <PackageReference Include="NSubstitute"/>
+    <PackageReference Include="Testcontainers.PostgreSql"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
   </ItemGroup>
-
   <ItemGroup>
-    <Using Include="Xunit" />
+    <ProjectReference Include="../../src/Kynakee.Gateway/Kynakee.Gateway.csproj" />
+    <ProjectReference Include="../../src/Kynakee.Modules/Kynakee.Modules.Identity/Kynakee.Modules.Identity.csproj" />
+    <ProjectReference Include="../../src/Kynakee.Modules/Kynakee.Modules.Billing/Kynakee.Modules.Billing.csproj" />
+    <ProjectReference Include="../../src/Kynakee.Modules/Kynakee.Modules.Bots/Kynakee.Modules.Bots.csproj" />
+    <ProjectReference Include="../../src/Kynakee.Modules/Kynakee.Modules.Mcp/Kynakee.Modules.Mcp.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Compile Include="../../src/Kynakee.Api/Endpoints/BillingEndpoints.cs" Link="Api/Endpoints/BillingEndpoints.cs" />
+    <Compile Include="../../src/Kynakee.Api/Endpoints/ApiResponse.cs" Link="Api/Endpoints/ApiResponse.cs" />
+    <Compile Include="../../src/Kynakee.Api/Application/Behaviors/*.cs" Link="Api/Behaviors/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Kynakee.Api/Application/Abstractions/*.cs" Link="Api/Abstractions/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Kynakee.Api/Infrastructure/Persistence/ModuleTransactionManager.cs" Link="Api/ModuleTransactionManager.cs" />
+    <Using Include="Microsoft.AspNetCore.Builder" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.AspNetCore.Routing" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
 </Project>

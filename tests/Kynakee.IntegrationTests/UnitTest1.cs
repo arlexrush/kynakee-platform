@@ -1,4 +1,6 @@
-﻿namespace Kynakee.IntegrationTests
+﻿using Xunit;
+
+namespace Kynakee.IntegrationTests
 {
     public class UnitTest1
     {

@@ -6,16 +6,34 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
-
   <ItemGroup>
-    <Using Include="Xunit" />
+    <ProjectReference Include="..\..\..\src\Kynakee.Modules\Kynakee.Modules.Ai\Kynakee.Modules.Ai.csproj" />
+    <ProjectReference Include="..\..\..\src\Kynakee.Modules\Kynakee.Modules.Billing\Kynakee.Modules.Billing.csproj" />
+    <ProjectReference Include="..\..\..\src\Kynakee.Modules\Kynakee.Modules.Bots\Kynakee.Modules.Bots.csproj" />
+    <ProjectReference Include="..\..\..\src\Kynakee.Modules\Kynakee.Modules.Mcp\Kynakee.Modules.Mcp.csproj" />
+    <ProjectReference Include="..\..\..\src\Kynakee.Modules\Kynakee.Modules.Identity\Kynakee.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\..\src\Kynakee.Modules\Kynakee.Modules.Projects\Kynakee.Modules.Projects.csproj" />
+    <ProjectReference Include="..\..\..\src\Kynakee.Modules\Kynakee.Modules.Shared\Kynakee.Modules.SharedKernel.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\ValidationBehavior.cs" Link="Api\Behaviors\ValidationBehavior.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\TenantIsolationBehavior.cs" Link="Api\Behaviors\TenantIsolationBehavior.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Application\Abstractions\ITenantContextWriter.cs" Link="Api\Abstractions\ITenantContextWriter.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Application\Abstractions\HttpTenantContext.cs" Link="Api\Abstractions\HttpTenantContext.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Microsoft.AspNetCore.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="KnowledgeBase\" />
+  </ItemGroup>
 </Project>
