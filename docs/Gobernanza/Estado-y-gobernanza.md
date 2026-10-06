@@ -13,6 +13,10 @@ Este documento separa la **arquitectura objetivo** descrita en PRD, ADR, contrat
 
 Para cerrar un pendiente, registrar el archivo y símbolo que implementa la regla, el comando de compilación y su salida, la prueba ejecutada y su resultado, y, si afecta a EF/infraestructura, el resultado de migración y prueba de integración o despliegue. Documentar fecha, entorno y limitaciones de cada evidencia. No convertir planes de Sprint 0 en hechos consumados.
 
+## Umbral temporal de cobertura
+
+El objetivo de calidad del PRD sigue siendo superar el 80 % de cobertura (línea, rama y método). Mientras la implementación funcional de la solución está en curso, CI aplica temporalmente un mínimo del 36 % de cobertura de líneas productivas, según el alcance de `dotnet-coverage.settings.json`. Esta cifra es un control mínimo provisional, no significa que se haya alcanzado el objetivo final ni que la funcionalidad esté completa. Cuando concluya la implementación funcional, se ampliarán las pruebas y se elevará el umbral progresivamente hasta recuperar el objetivo del 80 %; cualquier cambio de umbral debe actualizarse aquí y en el workflow de CI.
+
 ## Línea base observable
 
 | Área | Evidencia en el repositorio | Estado y siguiente comprobación |
