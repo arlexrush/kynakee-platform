@@ -31,7 +31,9 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 fallbackIndicator,
                 createdBy)
         {
-            EquipmentCategory = equipmentCategory;            
+            EquipmentCategory = equipmentCategory;
+            EquipmentCount = equipmentCount;
+            HoursPerApuUnit = hoursPerApuUnit;
         }
 
         public override APUComponentType Type =>
@@ -82,6 +84,14 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                     ApplicationError.Validation(
                         "PROJ_APU_EQUIPMENT_UNIT_REQUIRED",
                         "The equipment unit is required."));
+            }
+
+            if (equipmentCount <= 0 || hoursPerApuUnit <= 0)
+            {
+                return ResultFactory.Failure<EquipmentComponent>(
+                    ApplicationError.Validation(
+                        "PROJ_APU_EQUIPMENT_TECHNICAL_DATA_INVALID",
+                        "Equipment count and hours per APU unit must be greater than zero."));
             }
             
 

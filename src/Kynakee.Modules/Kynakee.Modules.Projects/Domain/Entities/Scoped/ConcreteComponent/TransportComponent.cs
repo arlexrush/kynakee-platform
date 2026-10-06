@@ -33,6 +33,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 fallbackIndicator,
                 createdBy)
         {
+            QuantityPerApuUnit = quantityPerApuUnit;
             DistanceKm = distanceKm;
             VehicleCapacity = vehicleCapacity;
             TransportRateBasis = transportRateBasis;
@@ -72,7 +73,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                         "PROJ_APU_TRANSPORT_IDENTITY_INVALID",
                         "The transport identity is invalid."));
             }
-            if(IsValidDescription(description))
+            if (!IsValidDescription(description))
             {
                 return ResultFactory.Failure<TransportComponent>(
                     ApplicationError.Validation(
@@ -111,7 +112,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 tenantId,
                 apuAssignmentId,
                 sourceComponentId,
-                description,
+                description.Trim(),
                 unit,                
                 fallbackIndicator,
                 distanceKm,

@@ -61,7 +61,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                         "PROJ_APU_SUBCONTRACT_IDENTITY_INVALID",
                         "The subcontract identity is invalid."));
             }
-            if(IsValidDescription(description))
+            if (!IsValidDescription(description))
             {
                 return ResultFactory.Failure<SubcontractComponent>(
                     ApplicationError.Validation(
@@ -93,7 +93,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 tenantId,
                 apuAssignmentId,
                 sourceComponentId,
-                description,
+                description.Trim(),
                 unit,                
                 fallbackIndicator,
                 contractConditions,
