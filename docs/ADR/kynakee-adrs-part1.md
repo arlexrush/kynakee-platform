@@ -3,6 +3,8 @@
 ### ADR-001 to ADR-012 · Foundational Decisions
 **Version 1.4 · 2026-08-19 · Confidential**
 
+> **Decision vs delivery:** The accepted ADRs govern new code but do not certify deployment. See [current state and governance](../Gobernanza/Estado-y-gobernanza.md). The independent YARP gateway and Projects domain/EF configuration exist; JWT enforcement, working cross-module integration, outbox, the other six DbContexts and real persistence still require implementation or verification. The `kynakee-web` repository is separate. Do not infer operational compliance from the snippets below.
+
 ---
 
 ## Table of Contents — Part 1
@@ -34,21 +36,23 @@
 
 After analysis, the 9 operational phases (Capture, Context, Scope, Production, Planning, Valuation, Review, Offer) are **NOT separate modules**. They are phases of the Project aggregate lifecycle. A WorkItem cannot exist without a Project. A Schedule cannot exist without a Project. A Valuation cannot exist without a Project. Therefore, **Project is the rich aggregate root** that owns all phase state.
 
-### Module Structure (7 Modules)
+### Solution Structure (7 Modules + Shared Kernel)
 
 This backend repository is the platform API and domain layer. The UI is intentionally maintained in the separate repository `kynakee-web` and deployed as an independent Docker container.
 
 ```
 src/
-├── Kynakee.Api/          # YARP Gateway + Host entry point
-└── Kynakee.Modules/      # 7 modules (NOT 13)
+├── Kynakee.Gateway/      # Independent YARP gateway and public HTTP entry point
+├── Kynakee.Api/          # Internal API host
+└── Kynakee.Modules/      # 7 bounded-context modules plus Shared Kernel
     ├── Projects/           # CORE: Project aggregate + all 9 phases as internal entities
     ├── KnowledgeBase/      # Global APU library (Qdrant + PostgreSQL). Independent.
     ├── MCP/                # Provider network. Stateless price query service.
     ├── AI/                 # Agent orchestration. Stateless processing service.
     ├── Bots/               # Telegram + WhatsApp. Translates messages to Project commands.
     ├── Billing/            # Credits, plans, Stripe. Listens to Project events.
-    └── Identity/           # Tenants, Users, Auth. Fully independent.
+    ├── Identity/           # Tenants, Users, Auth. Fully independent.
+    └── Shared/             # Shared Kernel primitives and contracts.
 ```
 
 Frontend repository: `kynakee-web/` (Next.js 15)
@@ -114,7 +118,7 @@ Kynakee.Modules.Projects/
 ### Project Aggregate — Phase State Machine
 
 ```csharp
-public class Project : BaseEntity<ProjectId>
+public class Project : AggregateRoot<ProjectId>
 {
     public ProjectPhase CurrentPhase { get; private set; }
     public CaptureExpedient? Capture { get; private set; }
@@ -130,23 +134,23 @@ public class Project : BaseEntity<ProjectId>
     public Result AddWorkItem(WorkItem item)
     {
         if (CurrentPhase < ProjectPhase.Scope)
-            return Result.Failure(Error.PhaseNotReached("Scope"));
+            return ResultFactory.Failure<ProjectId>(ProjectErrors.PhaseNotReached("Scope"));
         Valuation = null;   // Invalidated automatically
         Schedule = null;    // Invalidated automatically
         _workItems.Add(item);
-        RaiseDomainEvent(new WorkItemAddedEvent(Id, TenantId, item.Id));
-        return Result.Success(item.Id);
+        AddDomainEvent(new WorkItemAddedEvent(Id, TenantId, item.Id));
+        return ResultFactory.Success(item.Id);
     }
 
     // Invariant: Review requires complete Valuation
     public Result ApproveReview(UserId reviewer)
     {
         if (Valuation is null || !Valuation.IsComplete)
-            return Result.Failure(Error.ValuationRequired);
+            return ResultFactory.Failure(ProjectErrors.ValuationRequired);
         Review = Review.Approve(reviewer);
         CurrentPhase = ProjectPhase.Offer;
-        RaiseDomainEvent(new ReviewApprovedEvent(Id, TenantId, reviewer));
-        return Result.Success();
+        AddDomainEvent(new ReviewApprovedEvent(Id, TenantId, reviewer));
+        return ResultFactory.Ok();
     }
 }
 ```
@@ -233,9 +237,9 @@ public class Project : BaseEntity<ProjectId>
 | Domain Service | TokenGateService, FallbackChainService, ConfidenceCalculator — stateless. |
 | Bounded Context | **7 bounded contexts**: Projects, KnowledgeBase, MCP, AI, Bots, Billing, Identity. |
 
-### Base Entity Contract (MANDATORY)
+### Entity Contracts (MANDATORY)
 
-> **MANDATORY:** ALL persistent entities MUST inherit `BaseEntity<TId>` with these fields.
+> **MANDATORY:** Tenant-owned persistent entities inherit `BaseEntity<TId>` with the fields below. Genuinely global KnowledgeBase entities inherit the independent SharedKernel `GlobalEntity<TId>` with identity, audit, soft delete and concurrency fields but no `TenantId`; global aggregate roots that raise events inherit `GlobalAggregateRoot<TId>`. Optional `OwnerTenantId` and `OwnerUserId` record provenance only, not visibility or write privileges. Current implementation status and unverified persistence/authorization are tracked in [Estado y gobernanza](../Gobernanza/Estado-y-gobernanza.md).
 
 ```csharp
 public abstract class BaseEntity<TId>
@@ -248,11 +252,15 @@ public abstract class BaseEntity<TId>
     public Guid? UpdatedBy { get; protected set; }
     public DateTime? DeletedAt { get; protected set; } // Soft delete
     public bool IsDeleted { get; protected set; }
-    private readonly List<IDomainEvent> _domainEvents = new();
-    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
-    protected void RaiseDomainEvent(IDomainEvent e) => _domainEvents.Add(e);
+    public uint Version { get; protected set; }        // Concurrency token
 }
 ```
+
+En la implementación vigente, la colección de eventos no pertenece a `BaseEntity<TId>`.
+La gestiona `AggregateRoot<TId>`, que expone `DomainEvents`, `AddDomainEvent(...)` y
+`ClearDomainEvents()`.
+
+`GlobalEntity<TId>` no incorpora automáticamente el manejo de eventos de `AggregateRoot<TId>`. El kernel proporciona `GlobalAggregateRoot<TId>` para agregados globales que necesiten eventos, sin cambiar la herencia de agregados tenant-owned.
 
 ---
 
@@ -278,20 +286,14 @@ public abstract class BaseEntity<TId>
 
 > **MANDATORY:** All handlers MUST return `Result<T>`. Never throw exceptions for business logic.
 
+La implementación vigente usa `Result<T>`, `Result`, `ResultFactory`,
+`ApplicationError` y `ErrorType`, todos bajo `Kynakee.Modules.SharedKernel.Application`.
+Los contratos CQRS actuales son públicos y heredan de MediatR:
+
 ```csharp
 public interface ICommand<TResponse> : IRequest<Result<TResponse>> { }
-public interface IQuery<TResponse>   : IRequest<Result<TResponse>> { }
-
-public class Result<T>
-{
-    public bool IsSuccess { get; }
-    public T? Value { get; }
-    public Error? Error { get; }
-    public static Result<T> Success(T value) => new(true, value, null);
-    public static Result<T> Failure(Error error) => new(false, default, error);
-}
-public record Error(string Code, string Message, ErrorType Type);
-public enum ErrorType { Validation, NotFound, Conflict, Unauthorized, AI, MCP, Credits }
+public interface ICommand : IRequest<Result> { }
+public interface IQuery<TResponse> : IRequest<Result<TResponse>> { }
 ```
 
 ---
@@ -324,12 +326,11 @@ public enum ErrorType { Validation, NotFound, Conflict, Unauthorized, AI, MCP, C
 | BotMessageReceivedIntegrationEvent | Bots | Projects |
 
 ```csharp
-public abstract record IntegrationEvent
+public abstract class IntegrationEvent : IIntegrationEvent
 {
     public Guid Id { get; } = Guid.NewGuid();
     public DateTime OccurredOn { get; } = DateTime.UtcNow;
-    public Guid TenantId { get; init; }
-    public string EventType => GetType().Name;
+    public Guid TenantId { get; protected init; }
 }
 ```
 
@@ -367,7 +368,7 @@ services.AddMassTransit(x =>
 | Status | Accepted |
 | Date | 2026-08-19 |
 
-Row-Level Security via TenantId column on all entities. EF Core global query filters enforce isolation automatically. TenantId injected via MediatR pipeline behavior from JWT claims.
+Target tenant isolation via a required TenantId column on tenant-owned entities. EF Core filters for those entities require tenant and soft-delete checks; global KnowledgeBase entities have no TenantId and require a soft-delete-only filter plus explicit write authorization. Owner identifiers are provenance, not a tenant filter. Database row-level security and the global mapping must be verified before declaring them operational. TenantId is injected via MediatR pipeline behavior from JWT claims for tenant-owned operations.
 
 ```csharp
 public interface ITenantContext
@@ -432,7 +433,7 @@ modelBuilder.Entity<T>().HasQueryFilter(e => e.TenantId == _tenantContext.Tenant
 - Code First ONLY. Never modify the database directly.
 - Soft deletes via `IsDeleted` + `DeletedAt`. Global query filter excludes soft-deleted records.
 - Optimistic concurrency via `xmin` (PostgreSQL row version) on all aggregate roots.
-- Always index `TenantId`, `CreatedAt`, `IsDeleted` on every table.
+- Index tenant-owned tables by `TenantId` when their query patterns require it; genuinely global KnowledgeBase tables have no `TenantId`. Index `CreatedAt` and soft-delete fields according to actual queries.
 
 ---
 
@@ -468,11 +469,11 @@ Qdrant is used exclusively by the **KnowledgeBase module** for the Global APU Kn
 
 **Layer 1 (Model Registry):** manages all AI provider connections. Single point of configuration.  
 **Layer 2 (Agent Layer — AI Module):** Microsoft Agents Framework orchestrates specialized agents, each independently configured to use a specific model.  
-**DeepSeek-V3 is the universal fallback for all agents.**
+**Fallback selection is capability-aware; a model is eligible only when it supports every modality present in a request.**
 
 > **Key principle:** The AI module is a stateless service. It receives context from the Projects module, processes it, and returns structured results. It has no knowledge of Project state.
 
-### Layer 1: Model Registry — 5 Providers
+### Layer 1: Model Registry — 6 Models
 
 | ModelId | Provider | Model | Capabilities |
 |---|---|---|---|
@@ -481,60 +482,80 @@ Qdrant is used exclusively by the **KnowledgeBase module** for the Global APU Kn
 | gemini-embedding | Google Gemini | text-embedding-004 | embeddings 768d |
 | gemma4 | Google Gemma | gemma-4 | chat, lightweight, free, privacy |
 | openai-gpt4o | OpenAI | gpt-4o | chat, vision, reasoning, premium |
+| openai-text-embedding-3-small | OpenAI | text-embedding-3-small | embeddings 768d |
 
 ### Layer 2: Agent → Model Assignment (AI Module)
 
 | Agent | Primary Model | Fallback | Phase served |
 |---|---|---|---|
-| CaptureAgent | gemini-flash | deepseek-v3 | Phase 1 — vision/multimodal |
+| CaptureAgent | gemini-flash | openai-gpt4o | Phase 1 — multimodal input (eligibility depends on request modalities) |
 | ScopeAgent | deepseek-v3 | deepseek-v3 | Phase 3 — JSON extraction |
 | ProductionAgent | deepseek-v3 | deepseek-v3 | Phase 4 — APU generation |
 | PlanningAgent | deepseek-v3 | deepseek-v3 | Phase 5 — sequencing |
 | ValuationAgent | deepseek-v3 | deepseek-v3 | Phase 6 — price synthesis |
 | OfferAgent | gemini-flash | deepseek-v3 | Phase 8 — commercial narrative |
 | ConversationAgent | gemma4 | deepseek-v3 | Bots — lightweight, free |
-| EmbeddingService | gemini-embedding | openai-gpt4o | KnowledgeBase — 768d |
+| EmbeddingService | gemini-embedding | openai-text-embedding-3-small | KnowledgeBase — 768d |
 
-> **Universal fallback:** DeepSeek-V3 is the last-resort fallback for ALL chat agents. Credits NOT consumed for failed agent runs.
+> A configured fallback is not automatically usable for every request. Runtime routing must verify its capabilities against all requested modalities; if no model can process the complete request, return a failure without dropping media. Credits are NOT consumed for failed agent runs.
 
 ```csharp
-// IKynakeeAgentService — the ONLY way to call AI from any module
+// IKynakeeAgentService — the ONLY way to call AI from any module.
+// Canonical signatures and DTOs: docs/Module_Contracts/Module_Contracs.md.
 public interface IKynakeeAgentService
 {
-    Task<CaptureAnalysisResult>   RunCaptureAgentAsync(CaptureAgentRequest req, CancellationToken ct);
-    Task<IReadOnlyList<WorkItem>> RunScopeAgentAsync(ScopeAgentRequest req, CancellationToken ct);
-    Task<APUStructure>            RunProductionAgentAsync(ProductionAgentRequest req, CancellationToken ct);
-    Task<ScheduleResult>          RunPlanningAgentAsync(PlanningAgentRequest req, CancellationToken ct);
-    Task<ValuationResult>         RunValuationAgentAsync(ValuationAgentRequest req, CancellationToken ct);
-    Task<OfferNarrative>          RunOfferAgentAsync(OfferAgentRequest req, CancellationToken ct);
-    Task<ConversationResponse>    RunConversationAgentAsync(BotMessage msg, ConversationHistory h, CancellationToken ct);
-    Task<float[]>                 GenerateEmbeddingAsync(string text, CancellationToken ct);
+    Task<Result<CaptureAnalysisResult>> RunCaptureAgentAsync(CaptureAgentRequest request, CancellationToken ct);
+    Task<Result<IReadOnlyList<ExtractedWorkItem>>> RunScopeAgentAsync(ScopeAgentRequest request, CancellationToken ct);
+    Task<Result<APUStructureResult>> RunProductionAgentAsync(ProductionAgentRequest request, CancellationToken ct);
+    Task<Result<ScheduleResult>> RunPlanningAgentAsync(PlanningAgentRequest request, CancellationToken ct);
+    Task<Result<ValuationResult>> RunValuationAgentAsync(ValuationAgentRequest request, CancellationToken ct);
+    Task<Result<OfferNarrativeResult>> RunOfferAgentAsync(OfferAgentRequest request, CancellationToken ct);
+    Task<Result<ConversationResponse>> RunConversationAgentAsync(ConversationAgentRequest request, CancellationToken ct);
+    Task<Result<float[]>> GenerateEmbeddingAsync(string text, CancellationToken ct);
 }
 ```
 
 ```json
 {
   "AI": {
+    "Enabled": true,
+    "Providers": {
+      "DeepSeek": { "Protocol": "OpenAiCompatible", "BaseUrl": "https://api.deepseek.com/v1/", "ApiKey": "<from secret store>" },
+      "Gemini":   { "Protocol": "Gemini", "BaseUrl": "https://generativelanguage.googleapis.com/v1beta/", "ApiKey": "<from secret store>" },
+      "Gemma":    { "Protocol": "OpenAiCompatible", "BaseUrl": "<deployment HTTPS endpoint>", "ApiKey": "<from secret store>" },
+      "OpenAI":   { "Protocol": "OpenAiCompatible", "BaseUrl": "https://api.openai.com/v1/", "ApiKey": "<from secret store>" }
+    },
     "Models": {
-      "deepseek-v3":      { "Provider": "DeepSeek", "ModelId": "deepseek-chat",      "CostTier": "low"      },
-      "gemini-flash":     { "Provider": "Gemini",   "ModelId": "gemini-2.0-flash",   "CostTier": "low"      },
-      "gemini-embedding": { "Provider": "Gemini",   "ModelId": "text-embedding-004", "CostTier": "very-low" },
-      "gemma4":           { "Provider": "Gemma",    "ModelId": "gemma-4",            "CostTier": "free"     },
-      "openai-gpt4o":     { "Provider": "OpenAI",   "ModelId": "gpt-4o",             "CostTier": "high"     }
+      "deepseek-v3":      { "Provider": "DeepSeek", "ModelId": "deepseek-chat",      "CostTier": "low",      "Capabilities": ["Chat", "Reasoning"] },
+      "gemini-flash":     { "Provider": "Gemini",   "ModelId": "gemini-2.0-flash",   "CostTier": "low",      "Capabilities": ["Chat", "Vision", "Reasoning"] },
+      "gemini-embedding": { "Provider": "Gemini",   "ModelId": "text-embedding-004", "CostTier": "very-low", "Capabilities": ["Embedding"], "Dimensions": 768 },
+      "gemma4":           { "Provider": "Gemma",    "ModelId": "gemma-4",            "CostTier": "free",     "Capabilities": ["Chat", "Lightweight"] },
+      "openai-gpt4o":     { "Provider": "OpenAI",   "ModelId": "gpt-4o",             "CostTier": "high",     "Capabilities": ["Chat", "Vision", "Reasoning"] },
+      "openai-text-embedding-3-small": { "Provider": "OpenAI", "ModelId": "text-embedding-3-small", "CostTier": "low", "Capabilities": ["Embedding"], "Dimensions": 768 }
     },
     "Agents": {
-      "CaptureAgent":      { "ModelId": "gemini-flash",    "FallbackModelId": "deepseek-v3",  "PremiumModelId": "openai-gpt4o" },
+      "CaptureAgent":      { "ModelId": "gemini-flash",    "FallbackModelId": "openai-gpt4o", "PremiumModelId": "openai-gpt4o" },
       "ScopeAgent":        { "ModelId": "deepseek-v3",     "FallbackModelId": "deepseek-v3",  "PremiumModelId": "openai-gpt4o" },
       "ProductionAgent":   { "ModelId": "deepseek-v3",     "FallbackModelId": "deepseek-v3",  "PremiumModelId": "openai-gpt4o" },
       "PlanningAgent":     { "ModelId": "deepseek-v3",     "FallbackModelId": "deepseek-v3",  "PremiumModelId": "openai-gpt4o" },
       "ValuationAgent":    { "ModelId": "deepseek-v3",     "FallbackModelId": "deepseek-v3",  "PremiumModelId": "openai-gpt4o" },
       "OfferAgent":        { "ModelId": "gemini-flash",    "FallbackModelId": "deepseek-v3",  "PremiumModelId": "openai-gpt4o" },
       "ConversationAgent": { "ModelId": "gemma4",          "FallbackModelId": "deepseek-v3",  "PremiumModelId": "gemini-flash" },
-      "EmbeddingService":  { "ModelId": "gemini-embedding","FallbackModelId": "openai-gpt4o", "PremiumModelId": null           }
+      "EmbeddingService":  { "ModelId": "gemini-embedding","FallbackModelId": "openai-text-embedding-3-small", "PremiumModelId": null }
     }
   }
 }
 ```
+
+The `openai-text-embedding-3-small` fallback requests 768 dimensions to match the Gemini embedding contract. Provider endpoints and API keys are supplied through external configuration/secrets; never commit credentials.
+
+#### Multimodal input and routing
+
+User-provided context may combine text, PDF, images, audio, and video. Every attachment carries its MIME type; the AI layer derives required modalities from the request and may use a primary, fallback, or premium model only when that model declares every required capability. A fallback that cannot process the complete request is not eligible; the AI layer must not silently omit, transcode, or summarize unsupported media.
+
+Model capabilities are declared independently (`Pdf`, `Vision`, `Audio`, and `Video`), in addition to `Chat`. `Vision` does not imply PDF, audio, or video support. The AI service resolves media only through the trusted Projects-owned content source; arbitrary storage URLs are never sent to a provider. The implemented Gemini transport uploads prepared media through Files API and passes the returned trusted `ProviderFileUri` as `fileData`. OpenAI-compatible transport currently accepts inline images only. Unsupported protocol/modality combinations and untrusted Gemini file URIs are rejected before a provider request.
+
+Implementation status: capability classification, trusted-media resolution and byte limits, Gemini Files upload, OpenAI-compatible inline-image preparation, generic Gemini `fileData` serialization, typed agent orchestration, and AI run auditing are implemented. Unit tests cover the resolver and Gemini upload/trust checks, but do not verify live provider/model compatibility. In particular, successful PDF, audio, and video processing depends on the configured model/provider accepting those media types; it is not established merely by declaring a capability. Automatic fallback selection/retry, a verified multimodal fallback chain, and live-provider integration tests remain pending. The remaining agent methods currently use text JSON requests and do not accept attachments through their public request contracts.
 
 > **Key principle:** Adding a new AI provider = change Layer 1 only. Changing which model an agent uses = change Layer 2 config only. No business logic changes required.
 

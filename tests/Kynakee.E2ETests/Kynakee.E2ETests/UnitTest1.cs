@@ -1,4 +1,6 @@
-﻿namespace Kynakee.E2ETests
+﻿using Xunit;
+
+namespace Kynakee.E2ETests
 {
     public class UnitTest1
     {

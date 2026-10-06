@@ -3,6 +3,8 @@
 ### Public Interfaces Between the 7 Bounded Contexts
 **Version 1.0 · 2026-08-20 · Confidential**
 
+> **Implementation status:** The interfaces below specify required public boundaries; snippets do not prove that an interface, DTO, service or consumer exists in the current solution. See [current state and governance](../Gobernanza/Estado-y-gobernanza.md). Projects currently exposes an [`IProjectRepository`](../../src/Kynakee.Modules/Kynakee.Modules.Projects/Domain/Repositories/IProjectRepository.cs) and a concrete EF repository for full-state writes; this is not the proposed cross-module `IProjectService`. Before using a proposed contract, implement its interface, concrete adapter, DI registration, result handling and contract tests. The other six modules remain partially scaffolded; direct cross-module DbContext access remains prohibited.
+
 ---
 
 ## Table of Contents
@@ -165,49 +167,37 @@ public record SaveAPUTemplateRequest(
 
 ## 4. MCP Module — IMCPClient {#s4}
 
-The MCP module provides price queries to the provider network. Used by the Projects module (Phase 6: Valuation). Stateless service — no knowledge of project state.
+The MCP module provides price queries to the provider network for Projects valuation, without knowledge of project state. The **client defines this contract**; provider servers must adapt to it rather than constraining the client to an existing server implementation.
 
-```csharp
-namespace Kynakee.Modules.MCP.Contracts;
+**Public .NET contract:** [IMCPClient and DTOs](../../src/Kynakee.Modules/Kynakee.Modules.Mcp/Contracts/IMCPClient.cs), namespace `Kynakee.Modules.Mcp.Contracts`. `QueryPriceAsync` returns `Result<MCPQueryResult>` and `GetAvailableProvidersAsync` returns `Result<IReadOnlyList<MCPProviderSummaryDto>>`. Success/failure belongs to `Result`, not a duplicate flag on the quote.
 
-/// <summary>
-/// Public contract for the MCP module.
-/// Used by: Projects (Phase 6 Valuation)
-/// </summary>
-public interface IMCPClient
-{
-    Task<Result<MCPQueryResult>> QueryPriceAsync(
-        MCPPriceQuery query,
-        CancellationToken ct);
+| Contract | Fields and semantics |
+| --- | --- |
+| MCPPriceQuery | `CanonicalConceptId`, typed `ComponentType` (`Material`, `Labor`, `Equipment`, `Subcontract`, `Transport`), `Category`, `Unit`, positive `Quantity`, `GeoRegion`, `PostalCode`, uppercase three-letter `Currency`, optional local `ProjectId` (null for dashboard queries; an empty Guid is invalid). |
+| MCPQueryResult | Nonnegative decimal **unit** `Price`, exact `Unit` and `Currency`, `ProviderId`, `ProviderName`, `ServerId`, decimal `Confidence` from 0 to 1, client-side UTC `QueriedAt`. No implicit unit or currency conversions. |
+| MCPProviderSummaryDto | `Id`, `Name`, read-only `Categories` and `GeoRegions`, decimal `Rating`. No server configuration, credential references or secrets. |
 
-    Task<Result<IReadOnlyList<MCPProviderSummaryDto>>> GetAvailableProvidersAsync(
-        string geoRegion,
-        string category,
-        CancellationToken ct);
-}
+### Provider-side tool contract
 
-public record MCPPriceQuery(
-    string CanonicalConceptId,
-    string ComponentType,   // Material|Labor|Equipment|Subcontract|Transport
-    string Unit,
-    decimal Quantity,
-    string GeoRegion,
-    string PostalCode);
+[McpPriceTool.json](McpPriceTool.json) is the tool descriptor with input/output schemas and read-only/idempotency annotations. The provider server must:
 
-public record MCPQueryResult(
-    bool Success,
-    decimal? Price,
-    string? Currency,
-    string? ProviderName,
-    string? FallbackSource,  // null|Cache|Internet
-    double Confidence,
-    DateTime QueriedAt);
+1. Implement MCP **Streamable HTTP over HTTPS**, version negotiation and a read-only `query_price` tool. The official client SDK handles discovery and/or the `initialize` handshake according to the negotiated revision; the tests simulate `server/discover` returning MethodNotFound and falling back to `initialize`.
+2. Accept bearer authentication. The registered endpoint must exactly match its externally configured credential entry, without user information, query string or fragment. Automatic HTTP redirects, cookies and implicit proxies are disabled.
+3. Accept `tools/call` with name `query_price` and camelCase arguments from the input schema. Quantity supplies the volume context (including price tiers); the returned price is per requested unit, **not** the total for the quantity. Component type is independent of the provider category.
+4. Return `structuredContent` with `price`, `unit`, `currency` and `confidence`. The SDK can also carry MCP text content, but this client requires structured content and does not extract quotes from prose. The unit and currency must exactly match the request; missing or invalid fields fail validation. Confidence is provider-supplied and does not certify independent verification.
+5. Mark tool failures with `isError: true` or return MCP protocol errors as appropriate. Do not encode unavailable prices as a zero quote; zero is a valid price only when genuinely quoted.
 
-public record MCPProviderSummaryDto(
-    Guid Id, string Name, string Subdomain,
-    string[] Categories, string[] GeoRegions,
-    double Rating, string Status);
-```
+Credentials are supplied outside source control through `Mcp:Servers:{credentialReference}:Endpoint` and `Mcp:Servers:{credentialReference}:ApiKey`, for example reference `provider-one`. Equivalent environment-variable keys use `__` instead of `:`. The endpoint and secret are bound to the same reference, preventing a registered arbitrary destination from receiving another credential. The database stores the reference only, not the bearer secret.
+
+Providers are selected by region/category, availability and rating. The client tries registered live servers until it receives a compatible quote; it does not claim geographic-distance ranking or price comparison across all providers. Each attempt is cancelable with a 10-second timeout; transient transport/timeouts allow three retries with exponential backoff and jitter. The process-local Polly circuit is keyed by server, opens for 30 seconds after its configured 100%-failure sampling threshold (minimum three logical operations within one minute), and **does not replace** persistent domain `RecordFailure`/`RecordSuccess` or their three-consecutive-failure rule.
+
+Price queries require an authenticated tenant/user context. `ProjectId` is audit context only: the client neither checks project ownership nor transmits it to `query_price`. The consumer tenant owns the audit record even when the provider belongs to another tenant.
+
+The client persists final server outcomes after retries and updates provider health once per provider traversal. Audit uses an independent PostgreSQL transaction and survives caller rollback; concurrent health updates are serialized by a row lock. Local configuration failures and open circuits do not penalize the provider. Caller cancellation propagates without counting a failure; results buffered in the interrupted provider traversal may remain unaudited. Audit persistence failures propagate rather than silently returning an unaudited quote. The current log does not retain server ID, currency or detailed error code. Provider suspension is persisted, but durable delivery of its domain event requires the pending Outbox.
+
+Management commands and DTO queries are implemented for active Owner/Admin users of an active owning tenant through Identity's public `ITenantManagementAuthorization` contract. Reads use tenant-filtered projections and bounded pagination; they do not expose credentials or their references. There are no MCP HTTP endpoints yet.
+
+**Implemented and tested locally:** SDK-backed client, summaries, management, independent audit and persistent health; 27 unit tests and 84 integration tests (26 client, 36 management, 22 persistence) passed at closure on 2026-10-02 with ephemeral PostgreSQL and simulated HTTP. **Pending:** real provider interoperability, project ownership verification, cache/AI-search fallback, billing/compensation, endpoints, durable event delivery and E2E verification. These DTOs describe provider quotes only; no fallback result is claimed. Internet fallback must go through `IKynakeeAgentService` with verifiable sources, never a direct Gemini call. See [governance evidence](../Gobernanza/Estado-y-gobernanza.md).
 
 ---
 
@@ -261,7 +251,15 @@ public record CaptureAgentRequest(
     Guid ProjectId, Guid TenantId,
     IReadOnlyList<MediaFileRef> MediaFiles,
     IReadOnlyList<MeasurementRef> Measurements,
-    IReadOnlyList<string> Transcriptions);
+    IReadOnlyList<string> Transcriptions,
+    IReadOnlyList<string>? TextInputs = null);
+
+public record MediaFileRef(
+    Uri Url, string MimeType, string? Room,
+    bool IsPathology, bool Processed, string? FileName = null);
+
+public record MeasurementRef(
+    string Description, decimal Value, string Unit);
 
 public record CaptureAnalysisResult(
     IReadOnlyList<ExtractedWorkItem> WorkItems,
@@ -281,6 +279,152 @@ public record ConversationAgentRequest(
 public record ConversationResponse(
     string Message, string? SuggestedAction,
     bool RequiresHumanInput, int TokensConsumed);
+
+public record ScopeAgentRequest(
+    Guid ProjectId, Guid TenantId,
+    IReadOnlyList<ExtractedWorkItem> CapturedWorkItems,
+    IReadOnlyList<string> Observations,
+    ProjectContextData? Context);
+
+public record ProjectContextData(
+    string? Country, string? Region, string? Province,
+    string? Municipality, string? Address,
+    string? UrbanRegulation, string? ConstructionCode,
+    string? CollectiveAgreement,
+    decimal? SalaryOfficial1, decimal? SalaryLaborer,
+    decimal? InflationRate, decimal? VatRate,
+    decimal? ConstructionIndex);
+
+public record WorkItemRef(
+    Guid Id, string CanonicalConceptId, string Description,
+    string Unit, decimal Quantity, string? Location,
+    string? Observations, double Confidence);
+
+public record ProductionAgentRequest(
+    Guid ProjectId, Guid TenantId,
+    IReadOnlyList<WorkItemRef> WorkItems,
+    IReadOnlyList<APUTemplateRef> CandidateTemplates,
+    ProjectContextData? Context);
+
+public record APUTemplateRef(
+    Guid Id, string CanonicalConceptId, string OutputUnit,
+    string? Description);
+
+public record APUStructureResult(
+    IReadOnlyList<APUAssignmentStructure> Assignments,
+    int TokensConsumed, double Confidence);
+
+public record APUAssignmentStructure(
+    Guid WorkItemId, string OutputUnit, Guid? APUTemplateId,
+    string Source, IReadOnlyList<APUComponentStructure> Components,
+    double Confidence);
+
+// APUComponentStructure is a JSON polymorphic union. Its discriminator values are:
+// Material, Labor, Equipment, AuxiliaryMeans, Subcontract and Transport.
+// Each variant carries the corresponding technical fields from the Projects APU component definitions.
+public abstract record APUComponentStructure(
+    Guid? SourceComponentId, string Description, string Unit);
+
+public record MaterialAPUComponentStructure(
+    Guid? SourceComponentId, string Description, string Unit,
+    decimal WastePercentage, bool TransportIncluded,
+    decimal QuantityPerApuUnit)
+    : APUComponentStructure(SourceComponentId, Description, Unit);
+
+public record LaborAPUComponentStructure(
+    Guid? SourceComponentId, string Description, string Unit,
+    string Trade, decimal CrewSize, decimal Productivity)
+    : APUComponentStructure(SourceComponentId, Description, Unit);
+
+public record EquipmentAPUComponentStructure(
+    Guid? SourceComponentId, string Description, string Unit,
+    string EquipmentCategory, decimal EquipmentCount,
+    decimal HoursPerApuUnit)
+    : APUComponentStructure(SourceComponentId, Description, Unit);
+
+public record AuxiliaryMeansAPUComponentStructure(
+    Guid? SourceComponentId, string Description, string Unit,
+    decimal ApplicationPercentage)
+    : APUComponentStructure(SourceComponentId, Description, Unit);
+
+public record SubcontractAPUComponentStructure(
+    Guid? SourceComponentId, string Description, string Unit,
+    string ContractConditions, decimal QuantityPerApuUnit)
+    : APUComponentStructure(SourceComponentId, Description, Unit);
+
+public record TransportAPUComponentStructure(
+    Guid? SourceComponentId, string Description, string Unit,
+    decimal DistanceKm, decimal VehicleCapacity,
+    string TransportRateBasis, decimal RoundTripFactor,
+    decimal QuantityPerApuUnit)
+    : APUComponentStructure(SourceComponentId, Description, Unit);
+
+public record PlanningAgentRequest(
+    Guid ProjectId, Guid TenantId,
+    IReadOnlyList<WorkItemRef> WorkItems,
+    IReadOnlyList<APUAssignmentStructure> APUAssignments,
+    ProjectContextData? Context, DateOnly? StartDate);
+
+public record ScheduleResult(
+    IReadOnlyList<ScheduleActivityResult> Activities,
+    IReadOnlyList<SchedulePrecedenceResult> Precedences,
+    IReadOnlyList<Guid> CriticalPath, int TotalDurationDays,
+    DateOnly? StartDate, DateOnly? EndDate,
+    IReadOnlyList<ScheduleMilestoneResult> Milestones,
+    int TokensConsumed, double Confidence);
+
+public record ScheduleActivityResult(
+    Guid Id, string Name, int DurationDays,
+    IReadOnlyList<Guid> WorkItemIds);
+
+public record SchedulePrecedenceResult(
+    Guid ActivityId, Guid PredecessorActivityId,
+    string Type, int LagDays);
+
+public record ScheduleMilestoneResult(string Name, DateOnly Date);
+
+public record ValuationAgentRequest(
+    Guid ProjectId, Guid TenantId,
+    IReadOnlyList<WorkItemRef> WorkItems,
+    IReadOnlyList<APUAssignmentStructure> APUAssignments,
+    IReadOnlyList<APUComponentPriceRef> ComponentPrices,
+    string Currency, ProjectContextData? Context);
+
+public record APUComponentPriceRef(
+    Guid ComponentId, decimal UnitPrice, string Currency,
+    string QuotedUnit, string PricingSource, string? ProviderName,
+    bool IsFallback, double Confidence);
+
+public record ValuationResult(
+    IReadOnlyList<ValuedComponentResult> ValuedComponents,
+    IReadOnlyList<ValuedWorkItemResult> ValuedWorkItems,
+    decimal DirectCost, decimal AuxiliaryCost, decimal IndirectCost,
+    decimal Administration, decimal Quality, decimal SafetyHealth,
+    decimal Environment, decimal Contingency, decimal Profit, decimal VAT,
+    decimal TotalCost, string Currency, double Confidence,
+    int TokensConsumed);
+
+public record ValuedComponentResult(
+    Guid ComponentId, string ComponentType, string Description,
+    string Unit, decimal QuotedUnitPrice, decimal ComponentSubtotal,
+    string Currency, string PricingSource, string? ProviderName,
+    bool IsFallback, double Confidence);
+
+public record ValuedWorkItemResult(
+    Guid WorkItemId, Guid APUAssignmentId, decimal Quantity,
+    decimal DirectUnitCost, decimal AuxiliaryUnitCost,
+    decimal TotalUnitPrice, decimal TotalAmount, string Currency);
+
+public record OfferAgentRequest(
+    Guid ProjectId, Guid TenantId, string ProjectName,
+    ValuationResult Valuation, string? ScheduleSummary,
+    string? Conditions, string? Warranties, int ValidityDays,
+    string Language);
+
+public record OfferNarrativeResult(
+    string Title, string ExecutiveSummary, string ScopeDescription,
+    string? Conditions, string? Warranties, int ValidityDays,
+    string AIActDisclaimer, int TokensConsumed, double Confidence);
 ```
 
 ---
@@ -445,7 +589,7 @@ public class AssignAPUsCommandHandler
         var template = await _knowledgeBase.FindAPUTemplateAsync(
             cmd.CanonicalConceptId, cmd.GeoRegion, cmd.ProjectType, ct);
 
-        if (!template.IsSuccess) return Result.Failure(template.Error!);
+        if (!template.IsSuccess) return ResultFactory.Failure(template.Error!);
 
         if (template.Value is null)
         {
@@ -484,16 +628,20 @@ Use MassTransit integration events via the Outbox Pattern. Never publish directl
 
 ## 10. Integration Event Contracts {#s10}
 
-All integration events inherit from `IntegrationEvent` (schema_shared). All consumers must be idempotent.
+All integration events inherit from `Kynakee.Modules.SharedKernel.Integration.IntegrationEvent`
+and implement `IIntegrationEvent`. The current base type is an abstract class, not a record.
+Events are published through the MassTransit Outbox and all consumers must be idempotent.
+The public shape of the Shared Kernel integration-event contract is covered by
+`Kynakee.ContractTests.SharedKernel.IntegrationEventContractTests`; transport, Outbox and
+consumer idempotency remain integration concerns.
 
 ```csharp
-// Base class (Kynakee.Modules.Shared)
-public abstract record IntegrationEvent
+// Base class (Kynakee.Modules.SharedKernel.Integration)
+public abstract class IntegrationEvent : IIntegrationEvent
 {
     public Guid Id { get; } = Guid.NewGuid();
     public DateTime OccurredOn { get; } = DateTime.UtcNow;
-    public Guid TenantId { get; init; }
-    public string EventType => GetType().Name;
+    public Guid TenantId { get; protected init; }
 }
 
 // Key event contracts:

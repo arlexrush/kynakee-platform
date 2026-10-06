@@ -1,0 +1,23 @@
+{
+  "codeCoverage": {
+    "Configuration": {
+      "IncludeTestAssembly": false,
+      "CodeCoverage": {
+        "Sources": {
+          "Include": [
+            ".*[/\\\\]src[/\\\\]Kynakee\\..*\\.cs$"
+          ],
+          "Exclude": [
+            ".*[/\\\\](obj|Migrations)[/\\\\].*"
+          ]
+        },
+        "Attributes": {
+          "Exclude": [
+            "^System\\.Runtime\\.CompilerServices\\.CompilerGeneratedAttribute$",
+            "^System\\.CodeDom\\.Compiler\\.GeneratedCodeAttribute$"
+          ]
+        }
+      }
+    }
+  }
+}

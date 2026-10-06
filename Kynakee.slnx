@@ -21,6 +21,8 @@
   </Folder>
   <Folder Name="/docs/" />
   <Folder Name="/docs/Adr/">
+    <File Path="docs/ADR/ADR-025.docx" />
+    <File Path="docs/ADR/ADR-025.md" />
     <File Path="docs/ADR/ADRs.docx" />
     <File Path="docs/ADR/kynakee-adrs-part1.md" />
     <File Path="docs/ADR/kynakee-adrs-part2.md" />
@@ -35,6 +37,9 @@
   <Folder Name="/docs/Domain/">
     <File Path="docs/Domain/KynakeeDomainModel.docx" />
     <File Path="docs/Domain/KynakeeDomainModel.md" />
+  </Folder>
+  <Folder Name="/docs/Gobernanza/">
+    <File Path="docs/Gobernanza/Estado-y-gobernanza.md" />
   </Folder>
   <Folder Name="/docs/ModuleContracts/">
     <File Path="docs/Module_Contracts/Kynakee Module Contracts.docx" />
@@ -61,6 +66,10 @@
   <Folder Name="/docs/TechnicalRoadmap/">
     <File Path="docs/Technical_Roadmap/Kynakee Technical Roadmap.docx" />
     <File Path="docs/Technical_Roadmap/Technical_Roadmap.md" />
+  </Folder>
+  <Folder Name="/Management_Files/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Kynakee.Api/Kynakee.Api.csproj" Id="75c092bd-0580-4e76-a974-3e809361ad7d" />

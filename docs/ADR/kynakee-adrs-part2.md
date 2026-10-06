@@ -3,6 +3,8 @@
 ### ADR-013 to ADR-024 · Implementation Decisions
 **Version 1.4 · 2026-08-19 · Confidential**
 
+> **Decision vs delivery:** Examples and statuses below describe approved design, not delivered functionality. See [current state and governance](../Gobernanza/Estado-y-gobernanza.md). Six MediatR behaviors are registered in the API, and `AddBillingModule` registers `ITokenGateService`; isolated Billing pipeline tests exercise reserve/consume/release with synthetic claims. This does not verify real JWT authentication, the global API host, cross-module Outbox or saga flows. The Projects aggregate and EF mappings exist in code; migrations and persistence tests remain postponed.
+
 ---
 
 ## Table of Contents — Part 2
@@ -82,6 +84,8 @@ public class CreditAccount : BaseEntity<Guid>
 
 Telegram uses `Telegram.Bot` NuGet (free). WhatsApp uses Meta Cloud API directly (free up to 1,000 conversations/month). The **Bots module is a thin translation layer**: it parses messages and dispatches Project commands via MediatR. **No business logic in Bots module.** All logic lives in the Project aggregate.
 
+**Implementation boundary (2026-10-02):** the channel interface and webhooks below remain target design. Bots domain, data model and persistence are implemented and compiled, with 55 unit and 27 ephemeral PostgreSQL 17 integration tests passed. The conversation owns local state/message invariants, not Project business logic. Users must authenticate via Telegram/WhatsApp before a business conversation is created; `BotConversation.Create` requires a non-empty authenticated user ID and tenant ID, but does not verify external credentials or Identity membership itself. Real authentication/linking, channel adapters, command dispatch and idempotent event transport/consumers remain pending. See [scope and evidence](../Gobernanza/Estado-y-gobernanza.md#frontera-de-dominio-datos-y-persistencia-de-bots).
+
 ```csharp
 public interface IBotChannel
 {
@@ -109,6 +113,8 @@ public enum ConversationState
 // Bot reads Project.CurrentPhase to determine what to show next.
 ```
 
+`IsTimedOut` currently only checks inactivity for a caller-supplied positive timeout. The 30-minute/24-hour policy above is not an automatic scheduler or a verified resume workflow. The initial Bots migration is generated and tested only in ephemeral databases; applying it to existing environments requires separate authorization.
+
 ---
 
 ## ADR-015 — Infrastructure: Docker on Hetzner {#adr-015}
@@ -121,7 +127,7 @@ public enum ConversationState
 | Service | Image | Notes |
 |---|---|---|
 | traefik | traefik:v3 | 80, 443 — SSL, Let's Encrypt |
-| kynakee-gateway | custom .NET 10 | 8080 — YARP reverse proxy and the only published HTTP entry point. Backend repository: `kynakee-platform`. |
+| kynakee-gateway | custom .NET 10 | YARP reverse proxy and published business HTTP entry point; development also exposes infrastructure and ngrok inspector ports. Backend repository: `kynakee-platform`. |
 | kynakee-api | custom .NET 10 | Internal application host for all 7 modules. Not published to the host. |
 | kynakee-web | custom Next.js 15 | 3000 — Next.js server. Frontend repository: `kynakee-web`. |
 | postgres | postgres:17 | 5432 — all module schemas |
@@ -210,7 +216,7 @@ using (LogContext.PushProperty("ProjectId", projectId))  // When in project cont
 | Status | Accepted |
 | Date | 2026-08-19 |
 
-All entities use soft delete (`IsDeleted` + `DeletedAt`). Hard deletes FORBIDDEN except for GDPR erasure via `GDPRDataErasureService`. EF Core `SaveChanges` interceptor auto-sets audit fields on all `BaseEntity<TId>` instances.
+All entities use soft delete (`IsDeleted` + `DeletedAt`). Hard deletes FORBIDDEN except for GDPR erasure via `GDPRDataErasureService`. The interceptor below is target design, not a verified implementation: it only illustrates `BaseEntity<Guid>` and does not handle the independent `GlobalEntity<TId>` or other key types. Audit handling for both entity families remains pending.
 
 ```csharp
 public class AuditInterceptor : SaveChangesInterceptor
@@ -311,7 +317,7 @@ docker/
 ```
 
 ```dockerfile
-# .NET API Dockerfile (multi-stage) — one Dockerfile for all 7 modules
+# .NET API Dockerfile (multi-stage) — the API host contains the 7 modules
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["src/Kynakee.Api/Kynakee.Api.csproj", "src/Kynakee.Api/"]
@@ -398,6 +404,28 @@ Minimum **80% code coverage** (line + branch + method). **Project aggregate doma
 | E2E Tests (Backend) | xUnit + WebApplicationFactory + Playwright optional | API lifecycle, contracts, tenant flows, and backend system behavior. |
 | E2E Tests (Frontend) | Playwright (TypeScript) | Full project lifecycle via browser in `kynakee-web`. Staging only. |
 
+### Test method naming convention
+
+All C# test methods MUST use PascalCase without underscores, hyphens or other
+separators. The recommended structure is:
+
+```text
+[Subject][Scenario][ExpectedBehavior]
+```
+
+Examples:
+
+```csharp
+public void ConstructorShouldInitializeIdentityAndTenant()
+public void GenericFailureShouldContainErrorAndFailureState()
+public void DomainEventSubscriberShouldBeImplementable()
+```
+
+This convention keeps test names compatible with standard C# naming rules while
+making the subject, scenario and expected result explicit. It applies equally to
+unit, contract, integration, architecture and E2E tests. Existing tests should
+preserve this convention when they are extended or renamed.
+
 ```
 # Backend repo: kynakee-platform
 /tests/
@@ -423,6 +451,21 @@ Minimum **80% code coverage** (line + branch + method). **Project aggregate doma
 ```
 
 This is intentionally duplicated at the repository level: both repos own the E2E coverage relevant to their runtime boundary. The backend validates platform behavior and API contract flows; the frontend validates the UX and browser journeys. 
+
+### Shared Kernel test status
+
+The Shared Kernel validation is implemented in the existing repository test projects:
+
+| Test project | Current Shared Kernel responsibility |
+|---|---|
+| `Kynakee.UnitTests` | Behaviour of application, domain, integration and shared contract primitives |
+| `Kynakee.ContractTests` | Public CQRS, domain-event and integration-event contracts |
+| `Kynakee.ArchitectureTests` | Assembly, namespace, inheritance and scaffolding rules |
+
+The latest recorded execution completed with 132 tests passed, 0 failed and 0 skipped. This
+closes the US-008 Shared Kernel test scope. PostgreSQL, MassTransit Outbox, RabbitMQ, PactNet
+and Playwright remain separate integration or end-to-end concerns and are not represented as
+part of this unit/contract/architecture validation.
 
 ---
 
@@ -468,7 +511,7 @@ Authoritative contract for all code generation. Encoded in `.github/copilot-inst
 ### Module Rules (7 Modules)
 
 - **7 modules: Projects, KnowledgeBase, MCP, AI, Bots, Billing, Identity.** Design each for future microservice extraction.
-- ALL persistent entities MUST inherit `BaseEntity<TId>` with TenantId, CreatedAt, UpdatedAt, IsDeleted, DeletedAt.
+- Tenant-owned persistent entities MUST inherit `BaseEntity<TId>` with TenantId, audit and soft-delete fields. Genuinely global entities MUST inherit the independent `GlobalEntity<TId>`, without TenantId; optional owner IDs record provenance only.
 - NEVER call `DbContext.Remove()`. Use soft delete via `IsDeleted = true`.
 - ALL AI operations via `IKynakeeAgentService` (AI module). NEVER call Microsoft Agents Framework directly from Projects or any other module.
 - ALL MCP queries via `IMCPClient` (MCP module). NEVER call provider endpoints directly.
@@ -488,7 +531,7 @@ Condensed rules for `.github/copilot-instructions.md`.
 
 ### Non-Negotiable Rules (14)
 
-1. Every entity: inherit `BaseEntity<TId>` with TenantId, CreatedAt, UpdatedAt, IsDeleted, DeletedAt.
+1. Tenant-owned entities: `BaseEntity<TId>` with required TenantId. Genuinely global entities: `GlobalEntity<TId>` with optional provenance, audit and soft delete; no TenantId.
 2. Every handler: return `Result<T>`. Never throw for business logic.
 3. Every command: `AbstractValidator<TCommand>` in MediatR pipeline.
 4. **Project aggregate: ALL phase logic inside the aggregate. Never in services or controllers.**
