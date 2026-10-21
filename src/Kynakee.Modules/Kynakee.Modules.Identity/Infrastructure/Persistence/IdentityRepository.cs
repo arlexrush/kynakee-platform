@@ -4,13 +4,19 @@ using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Domain.Entities;
 using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Resources;
 
 namespace Kynakee.Modules.Identity.Infrastructure.Persistence;
 
 [SuppressMessage("Performance", "CA1812", Justification = "Created by the dependency injection container.")]
 internal sealed class IdentityRepository : IIdentityRepository
 {
+    private static readonly ResourceManager Resources = new(
+        "Kynakee.Modules.Identity.Infrastructure.IdentityPersistenceResources", typeof(IdentityRepository).Assembly);
     private readonly IdentityDbContext _dbContext;
 
     public IdentityRepository(IdentityDbContext dbContext)
@@ -89,19 +95,37 @@ internal sealed class IdentityRepository : IIdentityRepository
                 membership => membership.TenantId == tenantId && membership.UserId == userId && !membership.IsDeleted,
                 cancellationToken);
 
+    public Task<string?> FindRefreshTokenEmailAsync(string tokenHash, CancellationToken cancellationToken) =>
+        (from token in _dbContext.RefreshTokens.IgnoreQueryFilters().AsNoTracking()
+         join user in _dbContext.Users.IgnoreQueryFilters() on token.UserId equals user.Id
+         where token.TokenHash == tokenHash && !token.IsDeleted && !user.IsDeleted && token.TenantId == user.TenantId
+         select user.Email.Value).SingleOrDefaultAsync(cancellationToken);
+
     public Task<RefreshToken?> FindRefreshTokenByHashAsync(
         string tokenHash,
-        CancellationToken cancellationToken) =>
-        _dbContext.RefreshTokens.IgnoreQueryFilters()
+        CancellationToken cancellationToken)
+    {
+        var tokens = _dbContext.Database.CurrentTransaction is null
+            ? _dbContext.RefreshTokens.AsQueryable()
+            : _dbContext.RefreshTokens.FromSqlInterpolated(
+                $"SELECT *, xmin FROM schema_identity.refresh_tokens WHERE token_hash = {tokenHash} AND NOT is_deleted FOR UPDATE");
+        return tokens.IgnoreQueryFilters()
             .SingleOrDefaultAsync(token => token.TokenHash == tokenHash && !token.IsDeleted, cancellationToken);
+    }
 
     public Task<UserInvitation?> FindInvitationByHashAsync(
         string tokenHash,
-        CancellationToken cancellationToken) =>
-        _dbContext.UserInvitations.IgnoreQueryFilters()
+        CancellationToken cancellationToken)
+    {
+        var invitations = _dbContext.Database.CurrentTransaction is null
+            ? _dbContext.UserInvitations.AsQueryable()
+            : _dbContext.UserInvitations.FromSqlInterpolated(
+                $"SELECT *, xmin FROM schema_identity.user_invitations WHERE token_hash = {tokenHash} AND NOT is_deleted FOR UPDATE");
+        return invitations.IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 invitation => invitation.TokenHash == tokenHash && !invitation.IsDeleted,
                 cancellationToken);
+    }
 
     public Task<IdentityTenantProfile?> GetTenantProfileAsync(
         Guid tenantId,
@@ -124,11 +148,14 @@ internal sealed class IdentityRepository : IIdentityRepository
                     tenant.Settings.SafetyHealth,
                     tenant.Settings.Environment,
                     tenant.Settings.Contingency),
-                new IdentityCompanyBranding(
+                 new IdentityCompanyBranding(
                     tenant.Branding.CompanyName,
                     tenant.Branding.PrimaryColor,
                     tenant.Branding.LogoUrl,
-                    tenant.Branding.Email)))
+                    tenant.Branding.Email))
+             {
+                 Version = tenant.Version
+             })
             .SingleOrDefaultAsync(cancellationToken);
 
     public Task<IdentityUserProfile?> GetUserProfileAsync(
@@ -146,14 +173,18 @@ internal sealed class IdentityRepository : IIdentityRepository
              user.LastName,
              user.Email.Value,
              user.Phone == null ? null : user.Phone.Value,
-             membership.Role,
-             user.Status))
+              membership.Role,
+              user.Status)
+          {
+              Version = user.Version
+          })
         .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<IReadOnlyList<TenantUserListItem>> GetTenantUsersAsync(
         Guid tenantId,
-        CancellationToken cancellationToken) =>
-        await (from user in _dbContext.Users.AsNoTracking()
+        CancellationToken cancellationToken)
+    {
+        var users = await (from user in _dbContext.Users.AsNoTracking()
                join membership in _dbContext.TenantUsers.AsNoTracking()
                    on new { user.TenantId, UserId = user.Id } equals new { membership.TenantId, membership.UserId }
                where user.TenantId == tenantId
@@ -164,10 +195,16 @@ internal sealed class IdentityRepository : IIdentityRepository
                    user.LastName,
                    user.Email.Value,
                    user.Phone == null ? null : user.Phone.Value,
-                   membership.Role,
-                   user.Status))
+                    membership.Role,
+                    user.Status)
+                {
+                    MembershipVersion = membership.Version
+                })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        return users;
+    }
 
     public async Task<IReadOnlyList<RefreshToken>> GetActiveRefreshTokensAsync(
         Guid tenantId,
@@ -177,6 +214,27 @@ internal sealed class IdentityRepository : IIdentityRepository
             .Where(token => token.TenantId == tenantId && token.UserId == userId && token.RevokedAt == null)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+    public async Task AcquireTenantOwnerLockAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (tenantId == Guid.Empty || tenantId != _dbContext.CurrentTenantId)
+        {
+            throw new ArgumentException(Resources.GetString("OwnerLockTenantMismatch", CultureInfo.CurrentUICulture), nameof(tenantId));
+        }
+
+        var transaction = _dbContext.Database.CurrentTransaction;
+        if (transaction is null || transaction.GetDbTransaction().IsolationLevel != IsolationLevel.ReadCommitted)
+        {
+            throw new InvalidOperationException(Resources.GetString("OwnerLockTransactionRequired", CultureInfo.CurrentUICulture));
+        }
+
+        // READ COMMITTED permite leer el estado confirmado por el propietario anterior del bloqueo.
+        var lockKey = $"Kynakee.Identity.TenantOwners.v1:{tenantId:D}";
+        await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     public Task<int> CountActiveOwnersAsync(Guid tenantId, CancellationToken cancellationToken) =>
         (from membership in _dbContext.TenantUsers

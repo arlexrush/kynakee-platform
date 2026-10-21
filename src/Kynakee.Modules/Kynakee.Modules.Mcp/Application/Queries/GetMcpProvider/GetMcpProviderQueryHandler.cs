@@ -1,11 +1,11 @@
-using System.Globalization;
-using System.Resources;
 using Kynakee.Modules.Identity.Contracts;
 using Kynakee.Modules.Mcp.Domain.ValueObjects;
 using Kynakee.Modules.Mcp.Infrastructure.Persistence;
 using Kynakee.Modules.SharedKernel.Application;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Resources;
 
 namespace Kynakee.Modules.Mcp.Application.Queries.GetMcpProvider;
 

@@ -1,4 +1,5 @@
 using Kynakee.Modules.Identity.Domain.Aggregates;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -31,6 +32,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.PasswordHash)
             .HasColumnName("password_hash")
             .HasMaxLength(1024);
+        builder.Property(user => user.CredentialVersion)
+            .HasColumnName("credential_version")
+            .HasDefaultValueSql("gen_random_uuid()")
+            .IsRequired();
         builder.Property(user => user.Status)
             .HasColumnName("status")
             .HasConversion<string>()

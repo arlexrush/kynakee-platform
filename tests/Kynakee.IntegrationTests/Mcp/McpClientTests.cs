@@ -1,6 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using FluentAssertions;
 using Kynakee.Modules.Mcp;
 using Kynakee.Modules.Mcp.Contracts;
@@ -10,7 +7,9 @@ using Kynakee.Modules.Mcp.Infrastructure.Persistence;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -190,8 +189,14 @@ public sealed class McpClientTests : IAsyncLifetime
         await using var verification = CreateContext();
         var log = await verification.QueryLogs.SingleAsync(TestContext.Current.CancellationToken);
 
-        log.Should().BeEquivalentTo(new { ProjectId = (Guid?)projectId, TenantId = _tenant.TenantId,
-            CreatedBy = (Guid?)_tenant.UserId, ResponsePrice = (decimal?)7.25m, Status = McpQueryStatus.Success });
+        log.Should().BeEquivalentTo(new
+        {
+            ProjectId = (Guid?)projectId,
+            TenantId = _tenant.TenantId,
+            CreatedBy = (Guid?)_tenant.UserId,
+            ResponsePrice = (decimal?)7.25m,
+            Status = McpQueryStatus.Success
+        });
     }
 
     [Fact]

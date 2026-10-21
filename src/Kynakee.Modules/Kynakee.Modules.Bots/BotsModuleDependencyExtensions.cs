@@ -1,5 +1,5 @@
-﻿using Kynakee.Modules.Bots.Infrastructure.Persistence;
-using Kynakee.Modules.Bots.Domain.Repositories;
+﻿using Kynakee.Modules.Bots.Domain.Repositories;
+using Kynakee.Modules.Bots.Infrastructure.Persistence;
 using Kynakee.Modules.Bots.Infrastructure.Repositories;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Microsoft.EntityFrameworkCore;

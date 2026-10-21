@@ -1,5 +1,4 @@
-﻿using Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent;
-using Kynakee.Modules.Projects.Domain.ValueObjects;
+﻿using Kynakee.Modules.Projects.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Domain;
 
@@ -222,7 +221,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
                 }
 
                 var totalUnitPrice = directUnitCost.Add(auxiliaryUnitCost); // Total unit price is the sum of direct and auxiliary costs
-                
+
                 var lineDirectCost = directUnitCost.Multiply(workItemQuantity);
                 var lineAuxiliaryCost = auxiliaryUnitCost.Multiply(workItemQuantity);
                 var lineTotalAmount = totalUnitPrice.Multiply(workItemQuantity);

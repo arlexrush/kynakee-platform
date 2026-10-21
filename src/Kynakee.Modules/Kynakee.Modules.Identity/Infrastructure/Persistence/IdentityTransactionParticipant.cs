@@ -1,17 +1,20 @@
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Kynakee.Modules.Identity.Infrastructure.Persistence;
 
 public sealed class IdentityTransactionParticipant : IModuleTransactionParticipant
 {
     private readonly IdentityDbContext _dbContext;
+    private readonly TimeProvider _timeProvider;
 
-    public IdentityTransactionParticipant(IdentityDbContext dbContext)
+    public IdentityTransactionParticipant(IdentityDbContext dbContext, TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         _dbContext = dbContext;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public bool CanHandle(Type requestType)
@@ -24,10 +27,10 @@ public sealed class IdentityTransactionParticipant : IModuleTransactionParticipa
         CancellationToken cancellationToken)
     {
         var transaction = await _dbContext.Database
-            .BeginTransactionAsync(cancellationToken)
+            .BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken)
             .ConfigureAwait(false);
 
-        return new IdentityModuleTransactionScope(_dbContext, transaction);
+        return new IdentityModuleTransactionScope(_dbContext, transaction, _timeProvider);
     }
 
     public IReadOnlyCollection<IDomainEvent> CollectDomainEvents() =>

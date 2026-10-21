@@ -1,5 +1,5 @@
-using FluentValidation;
 using Kynakee.Modules.Identity.Domain.ValueObjects;
+using FluentValidation;
 
 namespace Kynakee.Modules.Identity.Application.Commands.InviteUser;
 

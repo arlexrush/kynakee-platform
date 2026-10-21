@@ -1,11 +1,11 @@
-﻿using Kynakee.Modules.Ai.Infrastructure.Persistence;
-using Kynakee.Modules.Ai.Infrastructure.AI;
+﻿using Kynakee.Modules.Ai.Infrastructure.AI;
+using Kynakee.Modules.Ai.Infrastructure.Persistence;
 using Kynakee.Modules.AI.Contracts;
 using Kynakee.Modules.SharedKernel.Contracts;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
 
 namespace Kynakee.Modules.Ai
 {

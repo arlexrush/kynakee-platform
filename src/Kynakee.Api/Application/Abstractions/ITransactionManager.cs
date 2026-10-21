@@ -12,6 +12,6 @@ namespace Kynakee.Api.Application.Abstractions
         Type requestType,
         CancellationToken cancellationToken);
     }
-    
+
 #pragma warning restore CA1515 // Considere la posibilidad de hacer que los tipos públicos sean internos
 }

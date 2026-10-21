@@ -1,5 +1,4 @@
 using FluentValidation;
-using Kynakee.Modules.Identity.Domain.ValueObjects;
 
 namespace Kynakee.Modules.Identity.Application.Commands.ChangeUserRole;
 

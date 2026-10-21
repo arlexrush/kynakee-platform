@@ -15,7 +15,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,            
+            MeasurementUnit unit,
             decimal wastePercentage,
             bool transportIncluded,
             decimal quantityPerApuUnit,
@@ -27,7 +27,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 apuAssignmentId,
                 sourceComponentId,
                 description,
-                unit,                
+                unit,
                 fallbackIndicator,
                 createdBy)
         {
@@ -83,7 +83,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                         "PROJ_APU_MATERIAL_UNIT_REQUIRED",
                         "The material unit is required."));
             }
-                        
+
             if (wastePercentage < 0)
             {
                 return ResultFactory.Failure<MaterialComponent>(

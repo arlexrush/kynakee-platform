@@ -1,5 +1,5 @@
-using FluentValidation;
 using Kynakee.Modules.Identity.Domain.ValueObjects;
+using FluentValidation;
 
 namespace Kynakee.Modules.Identity.Application.Commands.UpdateTenantProfile;
 
@@ -14,10 +14,23 @@ public sealed class UpdateTenantProfileCommandValidator : AbstractValidator<Upda
             .Must((command, value) => value is null
                 ? command.TaxCountry is null
                 : TaxId.Create(value, command.TaxCountry).IsSuccess);
-        RuleFor(command => command.FiscalCountry)
-            .NotEmpty()
-            .Length(2)
-            .Matches("^[A-Za-z]{2}$");
+        When(HasFiscalAddress, () =>
+        {
+            RuleFor(command => command.FiscalCountry).NotEmpty().Length(2).Matches("^[A-Za-z]{2}$");
+            RuleFor(command => command.Municipality).NotEmpty().MaximumLength(100);
+            RuleFor(command => command.PostalCode).NotEmpty().MaximumLength(20);
+            RuleFor(command => command.Street).NotEmpty().MaximumLength(300);
+            RuleFor(command => command.Region).MaximumLength(100);
+            RuleFor(command => command.Province).MaximumLength(100);
+        });
         RuleFor(command => command.PlanId).NotEmpty().MaximumLength(100);
     }
+
+    internal static bool HasFiscalAddress(UpdateTenantProfileCommand command) =>
+        !string.IsNullOrWhiteSpace(command.FiscalCountry) ||
+        !string.IsNullOrWhiteSpace(command.Region) ||
+        !string.IsNullOrWhiteSpace(command.Province) ||
+        !string.IsNullOrWhiteSpace(command.Municipality) ||
+        !string.IsNullOrWhiteSpace(command.PostalCode) ||
+        !string.IsNullOrWhiteSpace(command.Street);
 }

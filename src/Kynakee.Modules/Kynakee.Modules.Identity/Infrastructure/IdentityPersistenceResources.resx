@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="EmailAlreadyRegistered" xml:space="preserve"><value>An account with this email already exists.</value></data>
+  <data name="TenantSlugAlreadyUsed" xml:space="preserve"><value>The tenant slug is already in use.</value></data>
+  <data name="TenantUserAlreadyExists" xml:space="preserve"><value>The user already belongs to a tenant.</value></data>
+  <data name="RefreshTokenHashConflict" xml:space="preserve"><value>The session token conflicts with an existing session.</value></data>
+  <data name="InvitationTokenHashConflict" xml:space="preserve"><value>The invitation token could not be created due to a conflict.</value></data>
+  <data name="OwnerLockTenantMismatch" xml:space="preserve"><value>The owner mutation must belong to the current tenant.</value></data>
+  <data name="OwnerLockTransactionRequired" xml:space="preserve"><value>Owner mutations require an active ReadCommitted module transaction.</value></data>
+  <data name="ReplayOutcomeUnavailable" xml:space="preserve"><value>The stored outcome is no longer recoverable. Reconcile the operation before starting a new request.</value></data>
+  <data name="ReplaySessionUnavailable" xml:space="preserve"><value>The stored session is no longer valid.</value></data>
+  <data name="ReplayInvitationForbidden" xml:space="preserve"><value>The caller is no longer authorized to manage invitations.</value></data>
+  <data name="ReplayInvitationUnavailable" xml:space="preserve"><value>The stored invitation is no longer available.</value></data>
+  <data name="IdempotencyKeyConfigurationInvalid" xml:space="preserve"><value>Configure Identity:Idempotency with an independent Base64-encoded 32-byte HashKey, an ActiveOutcomeKeyId and corresponding OutcomeKeys. Key identifiers must be ASCII alphanumeric or hyphen, at most 32 characters.</value></data>
+  <data name="EmailKeyConfigurationInvalid" xml:space="preserve"><value>Configure Identity:InvitationEmail:ActiveKeyId and Keys with independent Base64-encoded 32-byte keys. Identifiers must be ASCII alphanumeric or hyphen, at most 32 characters.</value></data>
+  <data name="EmailPayloadUnavailable" xml:space="preserve"><value>The encrypted invitation email payload is unavailable.</value></data>
+  <data name="EmailTransactionRequired" xml:space="preserve"><value>Invitation email enqueue requires the current tenant command transaction.</value></data>
+  <data name="MailOAuthConfigurationInvalid" xml:space="preserve"><value>Configure Smtp:OAuth with ClientId, TenantId (consumers or a directory GUID), Username, an absolute CachePath and an independent Base64 32-byte CacheKey.</value></data>
+  <data name="MailOAuthConsentRequired" xml:space="preserve"><value>Mail authorization is unavailable. Run the administrative device authorization utility for the configured account.</value></data>
+  <data name="MailOAuthAccountMismatch" xml:space="preserve"><value>The authorized account does not match the configured SMTP account.</value></data>
+  <data name="MailOAuthCacheInvalid" xml:space="preserve"><value>The mail authorization cache cannot be decrypted. Restore its matching key or authorize again.</value></data>
+  <data name="MailOAuthTransportFailed" xml:space="preserve"><value>The OAuth SMTP transport could not complete delivery. Check connectivity, mailbox authorization and SMTP AUTH policy.</value></data>
+  <data name="MailInvitationUrlInvalid" xml:space="preserve"><value>Authentication:InvitationBaseUrl must be an absolute HTTPS URL.</value></data>
+  <data name="MailPortInvalid" xml:space="preserve"><value>Smtp:Port must be between 1 and 65535.</value></data>
+  <data name="MailSettingRequired" xml:space="preserve"><value>Configuration setting '{0}' is required to send invitation emails.</value></data>
+  <data name="MailInvitationSubject" xml:space="preserve"><value>Invitación a Kynakee</value></data>
+  <data name="MailInvitationBody" xml:space="preserve"><value>&lt;p&gt;Has sido invitado a {0} en Kynakee.&lt;/p&gt;&lt;p&gt;&lt;a href="{1}"&gt;Aceptar invitación&lt;/a&gt;&lt;/p&gt;</value></data>
+</root>

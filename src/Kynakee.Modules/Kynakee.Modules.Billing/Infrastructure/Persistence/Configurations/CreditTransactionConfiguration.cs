@@ -79,18 +79,18 @@ public sealed class CreditTransactionConfiguration : IEntityTypeConfiguration<Cr
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(transaction => new
-            {
-                transaction.TenantId,
-                transaction.CreatedAt,
-                transaction.Id
-            })
+        {
+            transaction.TenantId,
+            transaction.CreatedAt,
+            transaction.Id
+        })
             .HasDatabaseName("ix_billing_credit_transactions_history");
         builder.HasIndex(transaction => new
-            {
-                transaction.TenantId,
-                transaction.OperationId,
-                transaction.CreatedAt
-            })
+        {
+            transaction.TenantId,
+            transaction.OperationId,
+            transaction.CreatedAt
+        })
             .HasDatabaseName("ix_billing_credit_transactions_operation");
     }
 }

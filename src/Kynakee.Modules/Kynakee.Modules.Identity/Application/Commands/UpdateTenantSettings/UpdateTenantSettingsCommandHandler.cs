@@ -28,12 +28,9 @@ public sealed class UpdateTenantSettingsCommandHandler : IRequestHandler<UpdateT
                 "IDENTITY_TENANT_SETTINGS_FORBIDDEN", "The current user cannot update this tenant."));
         }
 
-        var membership = await _repository.GetTenantUserAsync(
-                request.TenantId,
-                _tenantContext.UserId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (membership is null || membership.Role is not (UserRole.Owner or UserRole.Admin))
+        if (!await IdentityAccess.HasActiveMembershipAsync(
+                _repository, request.TenantId, _tenantContext.UserId, cancellationToken, UserRole.Owner, UserRole.Admin)
+                .ConfigureAwait(false))
         {
             return ResultFactory.Failure(ApplicationError.Unauthorized(
                 "IDENTITY_TENANT_SETTINGS_FORBIDDEN", "Only tenant owners and administrators can update tenant settings."));
@@ -45,6 +42,10 @@ public sealed class UpdateTenantSettingsCommandHandler : IRequestHandler<UpdateT
         {
             return ResultFactory.Failure(ApplicationError.NotFound(
                 "IDENTITY_TENANT_NOT_FOUND", "The tenant was not found."));
+        }
+        if (tenant.Version != request.ExpectedVersion)
+        {
+            return PreconditionFailed();
         }
 
         var settings = CompanySettings.Create(
@@ -58,4 +59,7 @@ public sealed class UpdateTenantSettingsCommandHandler : IRequestHandler<UpdateT
             ? tenant.UpdateSettings(settings.Value!, _tenantContext.UserId)
             : ResultFactory.Failure(settings.Error!);
     }
+
+    private static Result PreconditionFailed() => ResultFactory.Failure(ApplicationError.Conflict(
+        "IDENTITY_PRECONDITION_FAILED", "The tenant settings have changed. Fetch the latest version before retrying."));
 }

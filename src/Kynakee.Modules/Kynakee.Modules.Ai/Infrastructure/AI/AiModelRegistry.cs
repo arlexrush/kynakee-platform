@@ -4,7 +4,6 @@ using Kynakee.Modules.Ai.Domain.Services;
 using Kynakee.Modules.SharedKernel.Application;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Headers;
 
 namespace Kynakee.Modules.Ai.Infrastructure.AI;
 

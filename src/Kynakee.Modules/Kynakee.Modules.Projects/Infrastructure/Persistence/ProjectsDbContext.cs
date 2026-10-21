@@ -37,7 +37,7 @@ namespace Kynakee.Modules.Projects.Infrastructure.Persistence
 
             ApplyGlobalFilters(modelBuilder);
 
-            base.OnModelCreating(modelBuilder); 
+            base.OnModelCreating(modelBuilder);
         }
 
         private void ApplyGlobalFilters(ModelBuilder modelBuilder)
@@ -104,7 +104,7 @@ namespace Kynakee.Modules.Projects.Infrastructure.Persistence
             }
 
             return false;
-        }        
+        }
 
     }
 }

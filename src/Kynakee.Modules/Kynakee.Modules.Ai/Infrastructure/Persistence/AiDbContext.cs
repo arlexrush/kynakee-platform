@@ -1,8 +1,8 @@
-using System.Linq.Expressions;
 using Kynakee.Modules.Ai.Domain.Entities;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Kynakee.Modules.Ai.Infrastructure.Persistence;
 

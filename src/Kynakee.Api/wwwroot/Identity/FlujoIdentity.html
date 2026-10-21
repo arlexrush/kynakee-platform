@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101722">
+  <title>Kynakee · Flujos de Identity</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1119;
+      --surface: #111b27;
+      --surface-2: #162332;
+      --line: #29394a;
+      --text: #e9f1f8;
+      --muted: #9cafc1;
+      --cyan: #54d6df;
+      --blue: #78a9ff;
+      --green: #70dfaa;
+      --amber: #ffc875;
+      --red: #ff8991;
+      --purple: #c1a5ff;
+      --radius: 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 15% 0%, rgba(84, 214, 223, .09), transparent 32rem),
+        radial-gradient(ellipse at 95% 10%, rgba(120, 169, 255, .08), transparent 30rem),
+        var(--bg);
+    }
+
+    button, input { font: inherit; }
+
+    button {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .shell {
+      width: min(1500px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 30px 0 56px;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--cyan);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px rgba(112, 223, 170, .8);
+    }
+
+    h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      letter-spacing: -.045em;
+      line-height: 1.05;
+    }
+
+    .intro {
+      max-width: 920px;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .notice {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin: 22px 0;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 200, 117, .3);
+      border-radius: 12px;
+      background: rgba(255, 200, 117, .07);
+      color: #f3d8a9;
+      line-height: 1.55;
+    }
+
+    .notice strong { color: var(--amber); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 325px) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(160deg, rgba(22, 35, 50, .96), rgba(15, 24, 35, .96));
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .18);
+    }
+
+    .panel-head {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-head h2 {
+      margin: 0 0 5px;
+      font-size: 1rem;
+    }
+
+    .panel-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.5;
+    }
+
+    .search-wrap { padding: 14px 14px 8px; }
+
+    .search {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      outline: none;
+      color: var(--text);
+      background: #0c141e;
+    }
+
+    .search:focus { border-color: var(--cyan); }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 4px 14px 12px;
+    }
+
+    .filter {
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: transparent;
+      font-size: .72rem;
+    }
+
+    .filter[aria-pressed="true"] {
+      border-color: rgba(84, 214, 223, .55);
+      color: var(--cyan);
+      background: rgba(84, 214, 223, .09);
+    }
+
+    .flow-list {
+      display: grid;
+      gap: 7px;
+      max-height: 68vh;
+      overflow-y: auto;
+      padding: 4px 10px 14px;
+    }
+
+    .flow-button {
+      display: grid;
+      grid-template-columns: 49px minmax(0, 1fr);
+      gap: 10px;
+      width: 100%;
+      padding: 11px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      text-align: left;
+      background: transparent;
+      transition: background .2s ease, border-color .2s ease, transform .2s ease;
+    }
+
+    .flow-button:hover {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, .035);
+      transform: translateX(2px);
+    }
+
+    .flow-button[aria-current="true"] {
+      border-color: rgba(84, 214, 223, .48);
+      background: rgba(84, 214, 223, .08);
+    }
+
+    .method {
+      align-self: start;
+      padding: 5px 4px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: .65rem;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .method.get { color: var(--green); background: rgba(112, 223, 170, .1); }
+    .method.post { color: var(--blue); background: rgba(120, 169, 255, .11); }
+    .method.put { color: var(--amber); background: rgba(255, 200, 117, .1); }
+    .method.delete { color: var(--red); background: rgba(255, 137, 145, .1); }
+
+    .flow-name {
+      display: block;
+      margin: 0 0 4px;
+      font-size: .83rem;
+      font-weight: 750;
+    }
+
+    .flow-path {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .68rem;
+      line-height: 1.45;
+    }
+
+    .main { min-width: 0; }
+
+    .selected-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      padding: 22px 23px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .selected-title {
+      min-width: 0;
+    }
+
+    .selected-title h2 {
+      margin: 0 0 7px;
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+    }
+
+    .selected-title p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .response-badge {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid rgba(112, 223, 170, .35);
+      border-radius: 999px;
+      color: var(--green);
+      background: rgba(112, 223, 170, .08);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .control-button {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #101a25;
+      transition: border-color .2s ease, background .2s ease;
+    }
+
+    .control-button:hover {
+      border-color: var(--cyan);
+      background: #162535;
+    }
+
+    .control-button.primary {
+      border-color: rgba(84, 214, 223, .5);
+      color: var(--cyan);
+      background: rgba(84, 214, 223, .08);
+    }
+
+    .speed {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-left: auto;
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    .speed input { width: 100px; accent-color: var(--cyan); }
+
+    .progress-wrap { padding: 0 20px 4px; }
+
+    .progress-track {
+      height: 3px;
+      overflow: hidden;
+      border-radius: 5px;
+      background: #243443;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--blue));
+      transition: width .35s ease;
+    }
+
+    .diagram-wrap { padding: 20px; }
+
+    .diagram-caption {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 15px;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+
+    .diagram-caption strong { color: var(--text); }
+
+    .scene-3d {
+      position: relative;
+      height: 360px;
+      margin-bottom: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: radial-gradient(ellipse at 50% 45%, rgba(84, 214, 223, .09), transparent 65%), #0c141e;
+      touch-action: none;
+    }
+
+    .scene-3d canvas { display: block; width: 100%; height: 100%; }
+
+    .scene-hud {
+      position: absolute;
+      top: 13px;
+      left: 15px;
+      display: grid;
+      gap: 4px;
+      pointer-events: none;
+    }
+
+    .scene-hud span:first-child {
+      color: var(--text);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .scene-hud span:last-child, .scene-help {
+      color: var(--muted);
+      font-size: .68rem;
+    }
+
+    .scene-stage {
+      position: absolute;
+      right: 15px;
+      bottom: 14px;
+      left: 15px;
+      display: grid;
+      gap: 4px;
+      max-width: 440px;
+      padding: 10px 12px;
+      border: 1px solid rgba(84, 214, 223, .22);
+      border-radius: 10px;
+      background: rgba(11, 17, 25, .82);
+      pointer-events: none;
+    }
+
+    .scene-stage span { color: var(--cyan); font-size: .65rem; font-weight: 800; text-transform: uppercase; }
+    .scene-stage strong { font-size: .78rem; }
+    .scene-stage p { margin: 0; color: var(--muted); font-size: .69rem; line-height: 1.4; }
+
+    .scene-camera-reset {
+      position: absolute;
+      top: 11px;
+      right: 12px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      background: rgba(16, 26, 37, .88);
+      font-size: .68rem;
+    }
+
+    .scene-help { margin: -9px 0 17px; }
+
+    .diagram {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .diagram::before {
+      position: absolute;
+      z-index: 0;
+      top: 18px;
+      bottom: 18px;
+      left: 50%;
+      width: 1px;
+      content: "";
+      background: linear-gradient(transparent, var(--line) 8%, var(--line) 92%, transparent);
+    }
+
+    .node {
+      position: relative;
+      z-index: 1;
+      min-height: 96px;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #101a25;
+      opacity: .62;
+      transform: scale(.985);
+      transition: opacity .3s ease, transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+    }
+
+    .node.active {
+      border-color: var(--cyan);
+      opacity: 1;
+      transform: scale(1);
+      box-shadow: 0 0 0 1px rgba(84, 214, 223, .12), 0 0 25px rgba(84, 214, 223, .09);
+    }
+
+    .node.done { opacity: .87; }
+
+    .node-top {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      margin-bottom: 7px;
+    }
+
+    .node-icon {
+      display: grid;
+      flex: 0 0 27px;
+      width: 27px;
+      height: 27px;
+      place-items: center;
+      border-radius: 8px;
+      color: var(--cyan);
+      background: rgba(84, 214, 223, .1);
+      font-size: .85rem;
+    }
+
+    .node h3 {
+      margin: 0;
+      font-size: .82rem;
+    }
+
+    .node p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .74rem;
+      line-height: 1.5;
+    }
+
+    .node-index {
+      position: absolute;
+      top: 10px;
+      right: 11px;
+      color: #73889c;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .66rem;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 0 20px 20px;
+    }
+
+    .detail-card {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10, 17, 25, .48);
+    }
+
+    .detail-card h3 {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 0 0 9px;
+      font-size: .86rem;
+    }
+
+    .detail-card ul {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: .77rem;
+      line-height: 1.5;
+    }
+
+    .detail-card code {
+      color: #c5d9ea;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .72rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 0 20px 20px;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+
+    .legend span { display: inline-flex; gap: 6px; align-items: center; }
+
+    .legend i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+
+    .legend .query { background: var(--green); }
+    .legend .command { background: var(--amber); }
+    .legend .external { background: var(--purple); }
+
+    .footnote {
+      margin: 18px 2px 0;
+      color: #8094a7;
+      font-size: .74rem;
+      line-height: 1.6;
+    }
+
+    .empty {
+      padding: 22px 14px;
+      color: var(--muted);
+      text-align: center;
+      font-size: .82rem;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .flow-list { max-height: 360px; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 20px, 1500px); padding-top: 20px; }
+      .selected-head { flex-direction: column; }
+      .diagram { grid-template-columns: 1fr; }
+      .diagram::before { left: 14px; }
+      .details { grid-template-columns: 1fr; }
+      .speed { width: 100%; margin-left: 0; }
+      .speed input { flex: 1; }
+      .node { margin-left: 8px; }
+      .scene-3d { height: 300px; }
+      .scene-stage { right: 10px; bottom: 10px; left: 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topline"><span class="pulse-dot"></span> Kynakee Platform · mapa de ejecución</div>
+    <h1>Flujos de Identity</h1>
+    <p class="intro">
+      Selecciona una operación para recorrer el request desde el cliente hasta la respuesta.
+      Los pasos muestran las rutas, endpoints, handlers, comportamientos de MediatR y dependencias
+      de Identity que aparecen en el código del proyecto.
+    </p>
+
+    <div class="notice">
+      <span aria-hidden="true">ⓘ</span>
+      <div>
+        <strong>Alcance:</strong> se representa el flujo dentro de <code>Kynakee.Api</code>.
+        Un gateway o proxy externo podría precederlo en un despliegue, pero no forma parte de estas
+        rutas de Identity. Las operaciones de autenticación usan el límite de 10 solicitudes por
+        minuto configurado para <code>identity-auth</code>.
+      </div>
+    </div>
+
+    <div class="layout">
+      <aside class="panel" aria-label="Operaciones de Identity">
+        <div class="panel-head">
+          <h2>Operaciones <span id="flow-count"></span></h2>
+          <p>Elige un endpoint. GET son consultas; los demás son comandos.</p>
+        </div>
+        <div class="search-wrap">
+          <input class="search" id="search" type="search" placeholder="Filtrar por nombre o ruta…" aria-label="Filtrar flujos">
+        </div>
+        <div class="filter-row" role="group" aria-label="Filtrar por tipo">
+          <button class="filter" data-filter="all" aria-pressed="true">Todos</button>
+          <button class="filter" data-filter="query" aria-pressed="false">Consultas</button>
+          <button class="filter" data-filter="command" aria-pressed="false">Comandos</button>
+        </div>
+        <nav class="flow-list" id="flow-list"></nav>
+      </aside>
+
+      <section class="main panel" aria-live="polite">
+        <header class="selected-head">
+          <div class="selected-title">
+            <h2 id="flow-title">Selecciona un flujo</h2>
+            <p id="flow-summary">El detalle del recorrido aparecerá aquí.</p>
+          </div>
+          <span class="response-badge" id="flow-response">HTTP —</span>
+        </header>
+
+        <div class="controls">
+          <button class="control-button primary" id="play" type="button">▶ Reproducir</button>
+          <button class="control-button" id="step" type="button">Siguiente paso</button>
+          <button class="control-button" id="reset" type="button">↺ Reiniciar</button>
+          <label class="speed" for="speed">
+            Velocidad
+            <input id="speed" type="range" min="450" max="1800" step="150" value="1050">
+            <span id="speed-value">1,05 s</span>
+          </label>
+        </div>
+
+        <div class="progress-wrap" aria-label="Progreso de animación">
+          <div class="progress-track"><div class="progress-bar" id="progress"></div></div>
+        </div>
+
+        <div class="diagram-wrap">
+          <p class="diagram-caption">
+            <span><strong>Recorrido:</strong> request → procesamiento → respuesta</span>
+            <span id="step-counter">Paso 0 / 0</span>
+          </p>
+          <div class="scene-3d" id="scene-3d" aria-label="Visualización tridimensional del flujo">
+            <canvas id="flow-3d-canvas" aria-label="Etapas del flujo de Identity representadas en 3D"></canvas>
+            <div class="scene-hud" aria-live="polite">
+              <span id="scene-flow-label">Flujo de Identity</span>
+              <span id="scene-status">Preparando visualización 3D…</span>
+            </div>
+            <button class="scene-camera-reset" id="scene-camera-reset" type="button">Restablecer cámara</button>
+            <div class="scene-stage" aria-live="polite">
+              <span id="scene-stage-number">Etapa 01</span>
+              <strong id="scene-stage-title">Preparando etapas…</strong>
+              <p id="scene-stage-text">La escena se sincronizará con la reproducción del flujo.</p>
+            </div>
+          </div>
+          <p class="scene-help">Arrastra para rotar la escena y usa la rueda para acercar o alejar.</p>
+          <div class="diagram" id="diagram"></div>
+        </div>
+
+        <div class="details">
+          <article class="detail-card">
+            <h3>▣ Request y respuesta</h3>
+            <ul id="request-details"></ul>
+          </article>
+          <article class="detail-card">
+            <h3>⚙ Objetos y dependencias</h3>
+            <ul id="dependency-details"></ul>
+          </article>
+          <article class="detail-card">
+            <h3>⇄ Persistencia y efectos</h3>
+            <ul id="persistence-details"></ul>
+          </article>
+          <article class="detail-card">
+            <h3>↗ Reglas que gobiernan el flujo</h3>
+            <ul id="rules-details"></ul>
+          </article>
+        </div>
+
+        <div class="legend" aria-label="Leyenda">
+          <span><i></i> etapa animada</span>
+          <span><i class="query"></i> consulta</span>
+          <span><i class="command"></i> comando</span>
+          <span><i class="external"></i> servicio o efecto externo</span>
+        </div>
+      </section>
+    </div>
+
+    <p class="footnote">
+      Referencias consultadas en el proyecto: <code>IdentityEndpoints</code>,
+      <code>KynakeeApiDependenceExtensions</code>, behaviors de MediatR,
+      handlers y repositorio de Identity. La animación es una guía visual y no ejecuta
+      solicitudes reales ni sustituye el trazado de una sesión de depuración.
+    </p>
+  </main>
+
+  <script>
+    "use strict";
+
+    const shared = {
+      requestPipeline: [
+        {
+          title: "Cliente HTTP",
+          icon: "⌁",
+          text: "Envía método, ruta, headers y body al API. Incluye JWT en las rutas protegidas."
+        },
+        {
+          title: "ASP.NET Core",
+          icon: "⇢",
+          text: "Pipeline registrado: UseRateLimiter → UseStaticFiles → UseAuthentication → UseAuthorization."
+        },
+        {
+          title: "IdentityEndpoints",
+          icon: "⌘",
+          text: "MapGroup /api/v1/identity enlaza la ruta con un endpoint mínimo."
+        },
+        {
+          title: "Endpoint → MediatR",
+          icon: "↳",
+          text: "Model binding crea el request; el endpoint crea o recibe el command/query y llama a ISender.Send."
+        },
+        {
+          title: "LoggingBehavior",
+          icon: "≋",
+          text: "Añade TenantId, CorrelationId, UserId y ProjectId al LogContext; registra inicio, duración y resultado."
+        },
+        {
+          title: "ValidationBehavior",
+          icon: "✓",
+          text: "Ejecuta los AbstractValidator registrados para el tipo de request; los errores se convierten en Result."
+        },
+        {
+          title: "TenantIsolationBehavior",
+          icon: "▦",
+          text: "Lee tenant_id y sub/NameIdentifier del JWT; inicializa HttpTenantContext. En rutas públicas deja el contexto anónimo."
+        },
+        {
+          title: "TokenGateBehavior",
+          icon: "◈",
+          text: "Comprueba IRequiresCredits. Los requests de Identity no reservan créditos y continúan sin TokenGateService."
+        }
+      ],
+      transaction: {
+        title: "TransactionBehavior",
+        icon: "▤",
+        text: "Al ser un command, ModuleTransactionManager resuelve IdentityTransactionParticipant e inicia la transacción de Identity."
+      },
+      domainEvents: {
+        title: "Eventos de dominio",
+        icon: "✦",
+        text: "DomainEventDispatchBehavior recoge eventos de la petición exitosa y encola su dispatch para después del commit."
+      },
+      query: {
+        title: "Handler de consulta",
+        icon: "⌕",
+        text: "Consulta IIdentityRepository y devuelve un Result con DTO/proyección; no abre transacción de command."
+      },
+      response: {
+        title: "Respuesta HTTP",
+        icon: "↩",
+        text: "El endpoint convierte Result en ApiResponse o Problem Details y lo devuelve al cliente."
+      }
+    };
+
+    const flows = [
+      {
+        id: "register", method: "POST", path: "/auth/register", kind: "command",
+        name: "Registrar tenant y propietario", response: "201 Created",
+        summary: "Crea la organización, la cuenta Owner y la sesión inicial.",
+        request: [
+          "Body modelado como RegisterTenantOwnerCommand.",
+          "Endpoint RegisterAsync → ISender.Send(command).",
+          "Endpoint público, con política identity-auth."
+        ],
+        dependencies: [
+          "RegisterTenantOwnerCommandHandler.",
+          "IIdentityRepository + IdentityDbContext.",
+          "UserManager<User> → IdentityUserStore.",
+          "IIdentityTokenService → JwtIdentityTokenService; TimeProvider.",
+          "Email, PhoneNumber, TaxId, CompanyBranding, TenantSlug, CompanySettings."
+        ],
+        persistence: [
+          "Añade Tenant; UserManager crea User y almacena el hash de password.",
+          "Activa User, crea TenantUser con UserRole.Owner y RefreshToken.",
+          "IdentitySessionFactory crea JWT y IdentitySessionResponse.",
+          "Transacción de Identity; TenantCreatedDomainEvent y UserRegisteredDomainEvent se despachan tras commit."
+        ],
+        rules: [
+          "El email y teléfono se validan como objetos de valor.",
+          "El slug se genera y comprueba como disponible; se reintenta hasta tres veces.",
+          "UserStatus pasa de Inactive a Active después de crear la contraseña.",
+          "JWT incluye sub, tenant_id, email y role."
+        ],
+        work: [
+          "RegisterTenantOwnerCommandHandler",
+          "Tenant.Create + User.Create",
+          "UserManager.CreateAsync(password)",
+          "User.Activate + TenantUser.Create(Owner)",
+          "IdentitySessionFactory + IIdentityTokenService",
+          "Commit → eventos de dominio → MapResult(201)"
+        ]
+      },
+      {
+        id: "login", method: "POST", path: "/auth/login", kind: "command",
+        name: "Iniciar sesión", response: "200 OK",
+        summary: "Valida credenciales y emite una sesión con access token y refresh token.",
+        request: [
+          "Body modelado como LoginCommand.",
+          "Endpoint LoginAsync → ISender.Send(command).",
+          "Endpoint público, con política identity-auth."
+        ],
+        dependencies: [
+          "LoginCommandHandler.",
+          "IIdentityRepository para buscar user, tenant y membership.",
+          "UserManager<User>.CheckPasswordAsync.",
+          "IIdentityTokenService y TimeProvider.",
+          "IdentitySessionFactory."
+        ],
+        persistence: [
+          "Busca usuario por email entre tenants y comprueba su estado.",
+          "Lee tenant y TenantUser para autenticar la membresía.",
+          "IdentitySessionFactory añade el nuevo RefreshToken.",
+          "Commit y dispatch de eventos si los hubiera."
+        ],
+        rules: [
+          "El usuario, tenant y membership deben estar activos/disponibles.",
+          "Credenciales inválidas devuelven error Unauthorized.",
+          "El access token dura 900 segundos; el refresh token opaco se guarda hasheado."
+        ],
+        work: [
+          "LoginCommandHandler",
+          "Email.Create + FindUserByEmailAcrossTenantsAsync",
+          "UserManager.CheckPasswordAsync",
+          "Cargar Tenant y TenantUser",
+          "IdentitySessionFactory crea JWT y refresh token",
+          "Commit → MapResult(200)"
+        ]
+      },
+      {
+        id: "refresh", method: "POST", path: "/auth/refresh", kind: "command",
+        name: "Rotar sesión", response: "200 OK",
+        summary: "Revoca el refresh token recibido y devuelve una sesión renovada.",
+        request: [
+          "Body modelado como RefreshSessionCommand.",
+          "Endpoint RefreshAsync → ISender.Send(command).",
+          "Endpoint público, con política identity-auth."
+        ],
+        dependencies: [
+          "RefreshSessionCommandHandler.",
+          "IIdentityRepository.",
+          "IIdentityTokenService para hash, token opaco y access JWT.",
+          "TimeProvider."
+        ],
+        persistence: [
+          "Busca el refresh token por hash y carga User, Tenant y TenantUser.",
+          "Crea un RefreshToken nuevo y revoca el actual con referencia al reemplazo.",
+          "Añade el nuevo token al repositorio y devuelve IdentitySessionResponse.",
+          "Commit de la transacción de Identity."
+        ],
+        rules: [
+          "Token inexistente, revocado o expirado: Unauthorized.",
+          "User, Tenant y membership tienen que seguir activos.",
+          "El token en claro solo se devuelve al cliente; en almacenamiento queda su hash."
+        ],
+        work: [
+          "RefreshSessionCommandHandler",
+          "HashToken + FindRefreshTokenByHashAsync",
+          "Validar IsUsableAt y estado de la membresía",
+          "RefreshToken.Create + currentToken.Revoke",
+          "CreateAccessToken + respuesta",
+          "Commit → MapResult(200)"
+        ]
+      },
+      {
+        id: "logout", method: "POST", path: "/auth/logout", kind: "command",
+        name: "Cerrar sesión", response: "204 No Content",
+        summary: "Revoca el refresh token indicado; un token desconocido no produce error.",
+        request: [
+          "Body modelado como RevokeSessionCommand.",
+          "Endpoint LogoutAsync → ISender.Send(command).",
+          "Endpoint público, con política identity-auth."
+        ],
+        dependencies: [
+          "RevokeSessionCommandHandler.",
+          "IIdentityRepository.",
+          "IIdentityTokenService para calcular el hash.",
+          "TimeProvider."
+        ],
+        persistence: [
+          "Busca RefreshToken por hash.",
+          "Si existe, llama a Revoke(now); si no existe, devuelve éxito.",
+          "El command usa la transacción del módulo Identity."
+        ],
+        rules: [
+          "La operación es idempotente para un token que no existe.",
+          "Éxito se mapea a Results.NoContent()."
+        ],
+        work: [
+          "RevokeSessionCommandHandler",
+          "HashToken + FindRefreshTokenByHashAsync",
+          "RefreshToken.Revoke(TimeProvider.GetUtcNow())",
+          "Commit de Identity",
+          "Mapeo a 204 No Content"
+        ]
+      },
+      {
+        id: "accept-invitation", method: "POST", path: "/auth/invitations/accept", kind: "command",
+        name: "Aceptar invitación", response: "200 OK",
+        summary: "Establece la contraseña, activa el usuario y emite una sesión.",
+        request: [
+          "Body modelado como AcceptInvitationCommand.",
+          "Endpoint AcceptInvitationAsync → ISender.Send(command).",
+          "Endpoint público, con política identity-auth."
+        ],
+        dependencies: [
+          "AcceptInvitationCommandHandler.",
+          "IIdentityRepository y UserManager<User>.",
+          "IIdentityTokenService y TimeProvider.",
+          "IdentitySessionFactory."
+        ],
+        persistence: [
+          "Localiza UserInvitation por hash y carga User, Tenant y TenantUser.",
+          "UserManager.AddPasswordAsync asigna la contraseña.",
+          "User.AcceptInvitation y UserInvitation.Accept actualizan el dominio.",
+          "Crea refresh token y sesión; commit y eventos tras el commit."
+        ],
+        rules: [
+          "La invitación debe ser utilizable; el tenant debe estar activo.",
+          "El usuario debe estar en PendingVerification.",
+          "Fallo de contraseña se devuelve como error de validación."
+        ],
+        work: [
+          "AcceptInvitationCommandHandler",
+          "HashToken + FindInvitationByHashAsync",
+          "Cargar User, Tenant y TenantUser",
+          "UserManager.AddPasswordAsync",
+          "User.AcceptInvitation + UserInvitation.Accept",
+          "IdentitySessionFactory → commit → respuesta 200"
+        ]
+      },
+      {
+        id: "invite", method: "POST", path: "/users/invite", kind: "command",
+        name: "Invitar usuario", response: "201 Created",
+        summary: "Crea un usuario pendiente, su membresía y una invitación de un solo uso.",
+        request: [
+          "El endpoint obtiene tenant_id y sub/NameIdentifier del JWT.",
+          "Construye InviteUserCommand y envía por ISender.",
+          "Ruta protegida con RequireAuthorization."
+        ],
+        dependencies: [
+          "InviteUserCommandHandler.",
+          "IIdentityRepository, IIdentityTokenService y TimeProvider.",
+          "IInvitationEmailSender → SmtpInvitationEmailSender.",
+          "IPostCommitActionDispatcher."
+        ],
+        persistence: [
+          "Añade User(PendingVerification), TenantUser y UserInvitation.",
+          "El token de invitación se genera en claro para el correo y se guarda hasheado.",
+          "Encola el envío; el dispatcher lo ejecuta después del commit."
+        ],
+        rules: [
+          "Solo Owner o Admin activo puede invitar.",
+          "Comprueba que el email no esté registrado en otro tenant.",
+          "La invitación es de un solo uso y tiene duración de 24 horas."
+        ],
+        work: [
+          "InviteUserCommandHandler",
+          "Comprobar inviter, tenant y rol",
+          "Email.Create + PhoneNumber.Create",
+          "User.Create(PendingVerification) + TenantUser.Create",
+          "UserInvitation.Create + AddUser/AddTenantUser/AddInvitation",
+          "Commit → envío SMTP post-commit → respuesta 201"
+        ]
+      },
+      {
+        id: "tenant-profile-get", method: "GET", path: "/tenants/me", kind: "query",
+        name: "Consultar perfil del tenant", response: "200 OK",
+        summary: "Devuelve el perfil fiscal y la configuración del tenant actual.",
+        request: [
+          "Ruta protegida; endpoint lee tenant_id y userId desde ClaimsPrincipal.",
+          "Construye GetTenantProfileQuery.",
+          "ISender.Send(query) devuelve Result<IdentityTenantProfile>."
+        ],
+        dependencies: [
+          "GetTenantProfileQueryHandler.",
+          "IIdentityRepository y ITenantContext.",
+          "EF Core proyecta IdentityTenantProfile."
+        ],
+        persistence: [
+          "Comprueba la membresía y que el rol sea Owner o Admin.",
+          "GetTenantProfileAsync usa una proyección, no carga el agregado completo.",
+          "IdentityDbContext consulta el esquema schema_identity."
+        ],
+        rules: [
+          "Requiere autenticación y claims de tenant y usuario válidos.",
+          "Membresía inexistente o rol no permitido: Unauthorized/Forbidden.",
+          "El endpoint mapea éxito a ApiResponse y error a Problem Details."
+        ],
+        work: [
+          "GetTenantProfileAsync",
+          "GetTenantProfileQuery",
+          "GetTenantProfileQueryHandler",
+          "Validar ITenantContext y rol Owner/Admin",
+          "IIdentityRepository.GetTenantProfileAsync",
+          "Proyección → MapResult(200)"
+        ]
+      },
+      {
+        id: "tenant-profile-put", method: "PUT", path: "/tenants/me", kind: "command",
+        name: "Actualizar perfil del tenant", response: "204 No Content",
+        summary: "Actualiza nombre, slug, datos fiscales, dirección y plan del tenant.",
+        request: [
+          "Body UpdateTenantProfileRequest; tenant_id se toma del JWT.",
+          "Endpoint construye UpdateTenantProfileCommand.",
+          "Ruta protegida."
+        ],
+        dependencies: [
+          "UpdateTenantProfileCommandHandler.",
+          "IIdentityRepository y ITenantContext.",
+          "TenantSlug, TaxId y Address como objetos de valor.",
+          "Agregado Tenant."
+        ],
+        persistence: [
+          "Carga Tenant y TenantUser; EF Core rastrea los cambios del agregado.",
+          "El handler invoca Tenant.UpdateProfile.",
+          "Commit en Identity; los eventos, si los hay, se despachan tras commit."
+        ],
+        rules: [
+          "Solo Owner o Admin puede actualizar el tenant.",
+          "Comprueba que el slug no pertenezca a otro tenant.",
+          "Errores de dominio se devuelven como Result; éxito devuelve 204."
+        ],
+        work: [
+          "UpdateTenantProfileCommandHandler",
+          "Verificar ITenantContext y rol Owner/Admin",
+          "Cargar Tenant + comprobar slug disponible",
+          "Crear TenantSlug, TaxId y Address",
+          "Tenant.UpdateProfile",
+          "Commit → Results.NoContent()"
+        ]
+      },
+      {
+        id: "identity-get", method: "GET", path: "/users/me", kind: "query",
+        name: "Consultar identidad actual", response: "200 OK",
+        summary: "Devuelve la proyección del usuario autenticado y de su tenant.",
+        request: [
+          "Ruta protegida; endpoint extrae tenant_id y userId del JWT.",
+          "Construye GetCurrentIdentityQuery.",
+          "ISender.Send(query)."
+        ],
+        dependencies: [
+          "GetCurrentIdentityQueryHandler.",
+          "IIdentityRepository y ITenantContext.",
+          "IdentitySessionProfile."
+        ],
+        persistence: [
+          "Comprueba que TenantId y UserId coincidan con el contexto autenticado.",
+          "Obtiene proyecciones del usuario y del tenant.",
+          "No carga el agregado completo ni abre transacción de command."
+        ],
+        rules: [
+          "Claims ausentes o distintos del contexto: Unauthorized.",
+          "Falta el perfil de usuario o tenant: NotFound.",
+          "Éxito se envuelve en ApiResponse."
+        ],
+        work: [
+          "GetCurrentIdentityAsync",
+          "GetCurrentIdentityQuery",
+          "GetCurrentIdentityQueryHandler",
+          "Validar identidad contra ITenantContext",
+          "Obtener proyecciones de User y Tenant",
+          "MapResult(200)"
+        ]
+      },
+      {
+        id: "users-get", method: "GET", path: "/users", kind: "query",
+        name: "Listar usuarios del tenant", response: "200 OK",
+        summary: "Devuelve los miembros del tenant para usuarios autorizados.",
+        request: [
+          "Ruta protegida; extrae tenant_id y userId del JWT.",
+          "Construye GetTenantUsersQuery.",
+          "ISender.Send(query)."
+        ],
+        dependencies: [
+          "GetTenantUsersQueryHandler.",
+          "IIdentityRepository y ITenantContext.",
+          "TenantUserListItem como proyección de lectura."
+        ],
+        persistence: [
+          "Comprueba la membership del solicitante.",
+          "Lee los usuarios del tenant y devuelve una lista proyectada.",
+          "Consulta de solo lectura."
+        ],
+        rules: [
+          "Solo Owner o Admin puede listar miembros.",
+          "No se modifica el agregado Tenant ni sus entidades hijas.",
+          "Éxito se envuelve en ApiResponse."
+        ],
+        work: [
+          "GetTenantUsersAsync",
+          "GetTenantUsersQuery",
+          "GetTenantUsersQueryHandler",
+          "Validar solicitante y rol Owner/Admin",
+          "IIdentityRepository.GetTenantUsersAsync",
+          "MapResult(200)"
+        ]
+      },
+      {
+        id: "user-profile-put", method: "PUT", path: "/users/me", kind: "command",
+        name: "Actualizar perfil de usuario", response: "204 No Content",
+        summary: "Actualiza nombre, apellidos y teléfono del usuario autenticado.",
+        request: [
+          "Body UpdateProfileRequest.",
+          "Endpoint obtiene tenant_id y userId del JWT y construye UpdateUserProfileCommand.",
+          "Ruta protegida."
+        ],
+        dependencies: [
+          "UpdateUserProfileCommandHandler.",
+          "IIdentityRepository y ITenantContext.",
+          "PhoneNumber como objeto de valor.",
+          "Agregado User."
+        ],
+        persistence: [
+          "Carga únicamente el User del tenant actual.",
+          "Llama a User.UpdateProfile para registrar la mutación.",
+          "Commit en el contexto Identity."
+        ],
+        rules: [
+          "Un usuario solo puede modificar su propio perfil.",
+          "Un teléfono inválido devuelve un Result de fallo.",
+          "La respuesta de éxito es 204 No Content."
+        ],
+        work: [
+          "UpdateProfileAsync",
+          "UpdateUserProfileCommand",
+          "UpdateUserProfileCommandHandler",
+          "Validar TenantId y UserId contra ITenantContext",
+          "PhoneNumber.Create + User.UpdateProfile",
+          "Commit → Results.NoContent()"
+        ]
+      },
+      {
+        id: "settings-put", method: "PUT", path: "/tenants/me/settings", kind: "command",
+        name: "Actualizar configuración del tenant", response: "204 No Content",
+        summary: "Actualiza los porcentajes de configuración de construcción.",
+        request: [
+          "Body UpdateTenantSettingsRequest con seis porcentajes.",
+          "Endpoint toma tenant_id del JWT y crea UpdateTenantSettingsCommand.",
+          "Ruta protegida."
+        ],
+        dependencies: [
+          "UpdateTenantSettingsCommandHandler.",
+          "IIdentityRepository y ITenantContext.",
+          "CompanySettings.Create.",
+          "Agregado Tenant."
+        ],
+        persistence: [
+          "Carga Tenant y membership del solicitante.",
+          "Construye CompanySettings y ejecuta Tenant.UpdateSettings.",
+          "Commit del módulo Identity."
+        ],
+        rules: [
+          "Solo Owner o Admin puede cambiar los settings.",
+          "CompanySettings.Create valida el objeto antes de asignarlo.",
+          "Tenant cancelado no admite cambios."
+        ],
+        work: [
+          "UpdateTenantSettingsAsync",
+          "UpdateTenantSettingsCommand",
+          "UpdateTenantSettingsCommandHandler",
+          "Validar contexto y rol Owner/Admin",
+          "CompanySettings.Create",
+          "Tenant.UpdateSettings → commit → respuesta 204"
+        ]
+      },
+      {
+        id: "role-put", method: "PUT", path: "/users/{userId}/role", kind: "command",
+        name: "Cambiar rol de usuario", response: "204 No Content",
+        summary: "Cambia el rol de un miembro sin dejar al tenant sin Owner activo.",
+        request: [
+          "Ruta incluye userId; body ChangeUserRoleRequest.",
+          "Endpoint obtiene tenant_id y crea ChangeUserRoleCommand.",
+          "Ruta protegida."
+        ],
+        dependencies: [
+          "ChangeUserRoleCommandHandler.",
+          "IIdentityRepository y ITenantContext.",
+          "UserRole.",
+          "Agregado TenantUser."
+        ],
+        persistence: [
+          "Carga membership del actor y del usuario objetivo.",
+          "Cuenta los Owners activos si se intenta quitar ese rol al último Owner.",
+          "Invoca TenantUser.ChangeRole."
+        ],
+        rules: [
+          "Solo Owner puede cambiar roles.",
+          "Debe quedar al menos un Owner activo.",
+          "Conflicto de último Owner se mapea a 422."
+        ],
+        work: [
+          "ChangeUserRoleAsync",
+          "ChangeUserRoleCommand",
+          "ChangeUserRoleCommandHandler",
+          "Validar contexto y que el actor sea Owner",
+          "Cargar target + comprobar último Owner",
+          "TenantUser.ChangeRole → commit → respuesta 204"
+        ]
+      },
+      {
+        id: "deactivate", method: "DELETE", path: "/users/{userId}", kind: "command",
+        name: "Desactivar usuario del tenant", response: "204 No Content",
+        summary: "Desactiva al miembro y revoca sesiones e invitaciones pendientes.",
+        request: [
+          "Ruta incluye userId; endpoint obtiene tenant_id del JWT.",
+          "Crea DeactivateTenantUserCommand.",
+          "Ruta protegida."
+        ],
+        dependencies: [
+          "DeactivateTenantUserCommandHandler.",
+          "IIdentityRepository, ITenantContext y TimeProvider.",
+          "User, TenantUser, RefreshToken y UserInvitation."
+        ],
+        persistence: [
+          "Desactiva User; revoca refresh tokens e invitaciones pendientes.",
+          "Elimina la membership mediante soft delete del dominio.",
+          "Los cambios quedan en la transacción Identity."
+        ],
+        rules: [
+          "Solo Owner puede desactivar miembros.",
+          "No se puede desactivar al último Owner activo.",
+          "Las entidades de negocio usan borrado lógico, no DbContext.Remove."
+        ],
+        work: [
+          "DeactivateTenantUserAsync",
+          "DeactivateTenantUserCommand",
+          "DeactivateTenantUserCommandHandler",
+          "Validar actor Owner y comprobar último Owner",
+          "User.Deactivate + revocar RefreshToken/UserInvitation",
+          "TenantUser.DeleteMembership → commit → respuesta 204"
+        ]
+      }
+    ];
+
+    const diagram = document.getElementById("diagram");
+    const flowList = document.getElementById("flow-list");
+    const search = document.getElementById("search");
+    const progress = document.getElementById("progress");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let selected = flows[0];
+    let currentStep = -1;
+    let timer = null;
+    let filter = "all";
+
+    function isProtected(flow) {
+      return !["register", "login", "refresh", "logout", "accept-invitation"].includes(flow.id);
+    }
+
+    function makeStages(flow) {
+      const stages = [...shared.requestPipeline];
+
+      stages.splice(2, 0, {
+        title: isProtected(flow) ? "JWT + autorización" : "Ruta pública + rate limit",
+        icon: isProtected(flow) ? "◉" : "◌",
+        text: isProtected(flow)
+          ? "JwtBearer valida firma, issuer, audience y expiración; RequireAuthorization protege esta ruta."
+          : "Ruta /auth pública; identity-auth limita a 10 requests/minuto por IP, sin cola."
+      });
+
+      stages.push({
+        title: "Request de la aplicación",
+        icon: flow.kind === "query" ? "⌕" : "✎",
+        text: flow.kind === "query"
+          ? "El endpoint crea " + flow.work[1] + " y lo envía a MediatR."
+          : "El endpoint modela el body en " + flow.work[1] + " y lo envía a MediatR."
+      });
+
+      stages.push(flow.kind === "command"
+        ? shared.transaction
+        : {
+            title: "TransactionBehavior",
+            icon: "▤",
+            text: "Es una query, no implementa ICommand/ICommand<T>; se omite BeginAsync y continúa sin transacción de command."
+          });
+
+      stages.push({
+        title: flow.work[0],
+        icon: "⚙",
+        text: flow.work.slice(1, -1).join(" → ") + "."
+      });
+
+      stages.push(flow.kind === "command"
+        ? shared.domainEvents
+        : {
+            title: "Lectura proyectada",
+            icon: "⌕",
+            text: "La query no produce efectos de dominio; el repositorio devuelve DTOs/proyecciones."
+          });
+
+      stages.push({
+        title: "Repositorio y PostgreSQL",
+        icon: "▤",
+        text: flow.kind === "query"
+          ? "IIdentityRepository consulta IdentityDbContext con proyecciones del esquema schema_identity."
+          : "IIdentityRepository persiste los cambios mediante IdentityDbContext en schema_identity."
+      });
+
+      stages.push({
+        title: "Mapeo y respuesta",
+        icon: "↩",
+        text: flow.work[flow.work.length - 1] + ". " + flow.response + "."
+      });
+
+      return stages;
+    }
+
+    function renderList() {
+      const query = search.value.trim().toLowerCase();
+      const filtered = flows.filter(flow => {
+        const matchesType = filter === "all" || flow.kind === filter;
+        const matchesText = (flow.name + " " + flow.path + " " + flow.method)
+          .toLowerCase().includes(query);
+        return matchesType && matchesText;
+      });
+
+      document.getElementById("flow-count").textContent = "(" + filtered.length + ")";
+      flowList.replaceChildren();
+
+      if (filtered.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No hay flujos que coincidan.";
+        flowList.append(empty);
+        return;
+      }
+
+      for (const flow of filtered) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "flow-button";
+        button.setAttribute("aria-current", String(flow.id === selected.id));
+        button.innerHTML =
+          '<span class="method ' + flow.method.toLowerCase() + '">' + flow.method + '</span>' +
+          '<span><span class="flow-name"></span><span class="flow-path"></span></span>';
+        button.querySelector(".flow-name").textContent = flow.name;
+        button.querySelector(".flow-path").textContent = flow.path;
+        button.addEventListener("click", () => selectFlow(flow));
+        flowList.append(button);
+      }
+    }
+
+    function fillList(id, items) {
+      const list = document.getElementById(id);
+      list.replaceChildren();
+      for (const item of items) {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.append(li);
+      }
+    }
+
+    function renderDetails(flow) {
+      document.getElementById("flow-title").textContent =
+        flow.method + " " + flow.path + " · " + flow.name;
+      document.getElementById("flow-summary").textContent = flow.summary;
+      document.getElementById("flow-response").textContent = flow.response;
+      fillList("request-details", flow.request);
+      fillList("dependency-details", flow.dependencies);
+      fillList("persistence-details", flow.persistence);
+      fillList("rules-details", flow.rules);
+    }
+
+    function renderDiagram(flow) {
+      const stages = makeStages(flow);
+      diagram.replaceChildren();
+
+      stages.forEach((stage, index) => {
+        const node = document.createElement("article");
+        node.className = "node";
+        node.dataset.index = String(index);
+
+        const top = document.createElement("div");
+        top.className = "node-top";
+
+        const icon = document.createElement("span");
+        icon.className = "node-icon";
+        icon.textContent = stage.icon;
+
+        const heading = document.createElement("h3");
+        heading.textContent = stage.title;
+
+        const count = document.createElement("span");
+        count.className = "node-index";
+        count.textContent = String(index + 1).padStart(2, "0");
+
+        const text = document.createElement("p");
+        text.textContent = stage.text;
+
+        top.append(icon, heading);
+        node.append(top, count, text);
+        diagram.append(node);
+      });
+
+      document.getElementById("step-counter").textContent =
+        "Paso 0 / " + stages.length;
+      progress.style.width = "0%";
+      window.identityFlowState = { flow, stages, currentStep };
+      window.dispatchEvent(new CustomEvent("identity-flow-state", { detail: window.identityFlowState }));
+    }
+
+    function stopPlayback() {
+      if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+      document.getElementById("play").textContent = "▶ Reproducir";
+    }
+
+    function setStep(index) {
+      const nodes = [...diagram.querySelectorAll(".node")];
+      if (nodes.length === 0) return;
+
+      currentStep = Math.max(-1, Math.min(index, nodes.length - 1));
+      nodes.forEach((node, nodeIndex) => {
+        node.classList.toggle("active", nodeIndex === currentStep);
+        node.classList.toggle("done", nodeIndex < currentStep);
+      });
+
+      const shownStep = Math.max(0, currentStep + 1);
+      document.getElementById("step-counter").textContent =
+        "Paso " + shownStep + " / " + nodes.length;
+      progress.style.width = (currentStep < 0 ? 0 : ((currentStep + 1) / nodes.length) * 100) + "%";
+
+      if (window.identityFlowState) {
+        window.identityFlowState.currentStep = currentStep;
+        window.dispatchEvent(new CustomEvent("identity-flow-state", { detail: window.identityFlowState }));
+      }
+
+      if (currentStep >= 0 && nodes[currentStep]) {
+        nodes[currentStep].scrollIntoView({
+          behavior: reducedMotion ? "auto" : "smooth",
+          block: "nearest"
+        });
+      }
+
+      if (currentStep >= nodes.length - 1) stopPlayback();
+    }
+
+    function selectFlow(flow) {
+      stopPlayback();
+      selected = flow;
+      currentStep = -1;
+      renderList();
+      renderDetails(flow);
+      renderDiagram(flow);
+    }
+
+    document.getElementById("step").addEventListener("click", () => {
+      if (currentStep >= diagram.children.length - 1) setStep(-1);
+      setStep(currentStep + 1);
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      stopPlayback();
+      setStep(-1);
+    });
+
+    document.getElementById("play").addEventListener("click", event => {
+      if (timer !== null) {
+        stopPlayback();
+        return;
+      }
+
+      if (currentStep >= diagram.children.length - 1) setStep(-1);
+
+      event.currentTarget.textContent = "❚❚ Pausar";
+      const interval = Number(document.getElementById("speed").value);
+      setStep(currentStep + 1);
+
+      timer = window.setInterval(() => {
+        if (currentStep >= diagram.children.length - 1) {
+          stopPlayback();
+          return;
+        }
+        setStep(currentStep + 1);
+      }, reducedMotion ? Math.min(interval, 500) : interval);
+    });
+
+    document.getElementById("speed").addEventListener("input", event => {
+      document.getElementById("speed-value").textContent =
+        (Number(event.target.value) / 1000).toFixed(2).replace(".", ",") + " s";
+      if (timer !== null) {
+        stopPlayback();
+        document.getElementById("play").click();
+      }
+    });
+
+    search.addEventListener("input", renderList);
+
+    document.querySelectorAll(".filter").forEach(button => {
+      button.addEventListener("click", () => {
+        filter = button.dataset.filter;
+        document.querySelectorAll(".filter").forEach(item =>
+          item.setAttribute("aria-pressed", String(item === button))
+        );
+        renderList();
+      });
+    });
+
+    selectFlow(selected);
+  </script>
+  <script type="module">
+    const status = document.getElementById("scene-status");
+    const stageNumber = document.getElementById("scene-stage-number");
+    const stageTitle = document.getElementById("scene-stage-title");
+    const stageText = document.getElementById("scene-stage-text");
+    const flowLabel = document.getElementById("scene-flow-label");
+    const canvas = document.getElementById("flow-3d-canvas");
+    const container = document.getElementById("scene-3d");
+    const reducedMotion3D = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    try {
+      const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js");
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      const flowGroup = new THREE.Group();
+      const clock = new THREE.Clock();
+      let currentNodes = [];
+      let activeIndex = 0;
+      let pointer = null;
+      let theta = 0;
+      let phi = 1.22;
+      let distance = 18;
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setClearColor(0x000000, 0);
+      scene.add(new THREE.HemisphereLight(0xbbeeff, 0x101722, 2.1));
+      const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+      keyLight.position.set(-4, 8, 8);
+      scene.add(keyLight, flowGroup);
+
+      function updateCamera() {
+        camera.position.set(
+          distance * Math.sin(phi) * Math.sin(theta),
+          distance * Math.cos(phi),
+          distance * Math.sin(phi) * Math.cos(theta)
+        );
+        camera.lookAt(0, 0, 0);
+      }
+
+      function resizeScene() {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        if (width === 0 || height === 0) return;
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+      }
+
+      function clearFlow() {
+        scene.remove(flowGroup);
+        flowGroup.traverse(object => {
+          object.geometry?.dispose();
+          if (Array.isArray(object.material)) {
+            object.material.forEach(material => {
+              material.map?.dispose();
+              material.dispose();
+            });
+          } else if (object.material) {
+            object.material.map?.dispose();
+            object.material.dispose();
+          }
+        });
+        flowGroup.clear();
+        currentNodes = [];
+        scene.add(flowGroup);
+      }
+
+      function makeNumberSprite(number) {
+        const labelCanvas = document.createElement("canvas");
+        labelCanvas.width = 128;
+        labelCanvas.height = 64;
+        const context = labelCanvas.getContext("2d");
+        context.fillStyle = "rgba(11, 17, 25, .9)";
+        context.beginPath();
+        context.roundRect(8, 8, 112, 48, 16);
+        context.fill();
+        context.fillStyle = "#e9f1f8";
+        context.font = "700 27px system-ui, sans-serif";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(String(number).padStart(2, "0"), 64, 33);
+        const texture = new THREE.CanvasTexture(labelCanvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+        sprite.scale.set(0.9, 0.45, 1);
+        return sprite;
+      }
+
+      function setActiveStep(index) {
+        if (currentNodes.length === 0) return;
+        activeIndex = Math.max(0, Math.min(index, currentNodes.length - 1));
+        currentNodes.forEach((node, nodeIndex) => {
+          const color = nodeIndex === activeIndex ? 0x54d6df : nodeIndex < activeIndex ? 0x70dfaa : 0x657b90;
+          node.orb.material.color.setHex(color);
+          node.orb.material.emissive.setHex(nodeIndex === activeIndex ? 0x124b51 : 0x000000);
+          node.ring.material.color.setHex(color);
+          node.ring.material.opacity = nodeIndex === activeIndex ? 0.95 : 0.42;
+        });
+      }
+
+      function renderFlow(state) {
+        if (!state?.flow || !state.stages?.length) return;
+        clearFlow();
+        flowLabel.textContent = state.flow.method + " " + state.flow.path;
+        status.textContent = state.flow.name + " · " + state.stages.length + " etapas";
+
+        const points = state.stages.map((_, index) => {
+          const progress = state.stages.length === 1 ? 0.5 : index / (state.stages.length - 1);
+          return new THREE.Vector3(
+            (progress - 0.5) * 12,
+            Math.sin(index * 0.9) * 0.82,
+            Math.cos(index * 0.72) * 1.55
+          );
+        });
+        const curve = new THREE.CatmullRomCurve3(points);
+        const path = new THREE.Mesh(
+          new THREE.TubeGeometry(curve, Math.max(48, points.length * 8), 0.035, 8, false),
+          new THREE.MeshStandardMaterial({ color: state.flow.kind === "query" ? 0x70dfaa : 0x78a9ff, transparent: true, opacity: 0.55, emissive: 0x102635 })
+        );
+        flowGroup.add(path);
+
+        points.forEach((point, index) => {
+          const node = new THREE.Group();
+          node.position.copy(point);
+          const orb = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 28, 20),
+            new THREE.MeshStandardMaterial({ color: 0x657b90, roughness: 0.28, metalness: 0.24, emissive: 0x000000 })
+          );
+          const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.43, 0.025, 8, 48),
+            new THREE.MeshBasicMaterial({ color: 0x657b90, transparent: true, opacity: 0.42 })
+          );
+          ring.rotation.x = Math.PI / 2.8;
+          const label = makeNumberSprite(index + 1);
+          label.position.set(0, 0.7, 0);
+          node.add(orb, ring, label);
+          flowGroup.add(node);
+          currentNodes.push({ node, orb, ring });
+        });
+
+        setActiveStep(state.currentStep < 0 ? 0 : state.currentStep);
+        updateStageCard(state);
+        updateCamera();
+      }
+
+      function updateStageCard(state) {
+        const index = Math.max(0, Math.min(state.currentStep, state.stages.length - 1));
+        const stage = state.stages[index];
+        stageNumber.textContent = "Etapa " + String(index + 1).padStart(2, "0") + " / " + state.stages.length;
+        stageTitle.textContent = stage.title;
+        stageText.textContent = stage.text;
+      }
+
+      function onFlowState(event) {
+        const state = event.detail;
+        if (!state?.flow || !state.stages?.length) return;
+        if (currentNodes.length !== state.stages.length || flowLabel.textContent !== state.flow.method + " " + state.flow.path) {
+          renderFlow(state);
+        } else {
+          setActiveStep(state.currentStep < 0 ? 0 : state.currentStep);
+          updateStageCard(state);
+        }
+      }
+
+      container.addEventListener("pointerdown", event => {
+        if (event.target.closest("button")) return;
+        pointer = { x: event.clientX, y: event.clientY };
+        container.setPointerCapture(event.pointerId);
+      });
+      container.addEventListener("pointermove", event => {
+        if (!pointer) return;
+        theta -= (event.clientX - pointer.x) * 0.006;
+        phi = Math.max(0.35, Math.min(2.45, phi + (event.clientY - pointer.y) * 0.006));
+        pointer = { x: event.clientX, y: event.clientY };
+        updateCamera();
+      });
+      container.addEventListener("pointerup", () => { pointer = null; });
+      container.addEventListener("pointercancel", () => { pointer = null; });
+      container.addEventListener("wheel", event => {
+        event.preventDefault();
+        distance = Math.max(10, Math.min(30, distance + event.deltaY * 0.012));
+        updateCamera();
+      }, { passive: false });
+      document.getElementById("scene-camera-reset").addEventListener("click", () => {
+        theta = 0;
+        phi = 1.22;
+        distance = 18;
+        updateCamera();
+      });
+
+      updateCamera();
+      resizeScene();
+      new ResizeObserver(resizeScene).observe(container);
+      window.addEventListener("identity-flow-state", onFlowState);
+      if (window.identityFlowState) renderFlow(window.identityFlowState);
+      status.textContent = "Arrastra para explorar las etapas";
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (!reducedMotion3D && currentNodes[activeIndex]) {
+          const pulse = 1 + Math.sin(clock.getElapsedTime() * 2.2) * 0.045;
+          currentNodes[activeIndex].node.scale.setScalar(pulse);
+        }
+        renderer.render(scene, camera);
+      }
+      animate();
+    } catch {
+      status.textContent = "No se pudo cargar Three.js desde jsDelivr. Comprueba la conexión.";
+      stageTitle.textContent = "Visualización 3D no disponible";
+      stageText.textContent = "El resto de la página sigue funcionando con el diagrama y los controles existentes.";
+    }
+  </script>
+</body>
+</html>

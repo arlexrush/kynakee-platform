@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Help" xml:space="preserve"><value>Uso: Kynakee.MailAuthorization authorize | verify-smtp | --help
+authorize obtiene consentimiento. verify-smtp envía un único diagnóstico al buzón configurado o al destinatario explícito Smtp__VerificationRecipient, sin invitación ni reintentos; requiere autorización expresa.
+Variables requeridas: Smtp__OAuth__ClientId, Smtp__OAuth__TenantId (consumers o GUID del directorio), Smtp__OAuth__Username, Smtp__OAuth__CachePath (ruta absoluta), Smtp__OAuth__CacheKey (Base64, 32 bytes independientes).
+Use una terminal administrativa sin grabación. Ctrl+C cancela; límite: diez minutos.
+La caché y su clave deben coincidir con las utilizadas por la API. No pase secretos como argumentos.</value></data>
+  <data name="InvalidArguments" xml:space="preserve"><value>Argumentos no admitidos. Use --help, authorize o verify-smtp; no pase secretos como argumentos.</value></data>
+  <data name="SmtpTestSubject" xml:space="preserve"><value>Kynakee — prueba SMTP autorizada</value></data>
+  <data name="SmtpTestBody" xml:space="preserve"><value>Mensaje diagnóstico autorizado enviado mediante STARTTLS y OAuth delegado. No es una invitación y no contiene credenciales ni enlaces. Confirme su recepción por separado.</value></data>
+  <data name="SmtpAccepted" xml:space="preserve"><value>Adquisición silenciosa, STARTTLS y autenticación OAuth completadas. SMTP aceptó un único mensaje diagnóstico; falta confirmar recepción. No se han creado invitaciones ni probado la API.</value></data>
+  <data name="SmtpFailed" xml:space="preserve"><value>La prueba SMTP no se completó. No se muestran datos del proveedor ni se reintenta automáticamente; compruebe recepción antes de repetir.</value></data>
+  <data name="InteractiveTerminalRequired" xml:space="preserve"><value>La autorización requiere una terminal interactiva sin redirección de entrada o salida.</value></data>
+  <data name="AuthorizationStarting" xml:space="preserve"><value>Se solicitará consentimiento para SMTP.Send. No comparta el código ni grabe esta terminal. Compruebe que inicia sesión con el buzón configurado.</value></data>
+  <data name="DeviceInstructions" xml:space="preserve"><value>Abra {0} en su navegador e introduzca el código {1}. No comparta este código.</value></data>
+  <data name="AuthorizationSucceeded" xml:space="preserve"><value>Consentimiento obtenido y caché cifrada guardada. No se ha enviado correo ni verificado SMTP.</value></data>
+  <data name="AuthorizationCancelled" xml:space="preserve"><value>Autorización cancelada o tiempo límite agotado.</value></data>
+  <data name="ConfigurationOrAccountInvalid" xml:space="preserve"><value>Compruebe la configuración OAuth, la correspondencia del buzón y el acceso a su caché cifrada. No se muestra información sensible del proveedor.</value></data>
+  <data name="AuthorizationFailed" xml:space="preserve"><value>No se pudo completar el consentimiento. Compruebe el registro de aplicación, el permiso SMTP.Send y las políticas de acceso. No se muestran tokens ni detalles del proveedor.</value></data>
+  <data name="CacheAccessFailed" xml:space="preserve"><value>No se pudo acceder a la caché cifrada. Compruebe permisos, ruta, espacio y clave. No se muestran datos de la caché.</value></data>
+</root>

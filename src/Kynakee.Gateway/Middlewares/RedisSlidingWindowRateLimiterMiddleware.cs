@@ -1,8 +1,8 @@
-using System.Globalization;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using Serilog.Context;
 using StackExchange.Redis;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace Kynakee.Gateway;
 

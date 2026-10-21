@@ -19,7 +19,7 @@
     /// </summary>
     /// <typeparam name="TId">Type of the aggregate root identifier.</typeparam>
 
-    public abstract class AggregateRoot <TId> : BaseEntity<TId>, IDomainEventSource
+    public abstract class AggregateRoot<TId> : BaseEntity<TId>, IDomainEventSource
     {
         // ── Domain Events ─────────────────────────────────────────────────────────
 

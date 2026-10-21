@@ -91,7 +91,7 @@ namespace Kynakee.Api.Application.Behaviors
                 throw;
             }
         }
-        
+
         private Guid ResolveTenantId()
         {
             if (_tenantContext is not null &&

@@ -81,7 +81,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.DataCapture
                 return ResultFactory.Failure<CaptureExpedient>(
                     ApplicationError.Validation(
                         "PROJ_CAPTURE_MEDIA_REFERENCE_INVALID",
-                        "Capture media must reference a MinIO object and declare its media type."));
+                        "Capture media must reference an S3 object and declare its media type."));
             }
 
             var resolvedMeasurements = measurements?.ToArray() ?? [];
@@ -103,7 +103,8 @@ namespace Kynakee.Modules.Projects.Domain.Entities.DataCapture
         private static bool IsValidStorageUri(Uri? uri)
         {
             if (uri is not { IsAbsoluteUri: true } ||
-                !string.Equals(uri.Scheme, "minio", StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(uri.Scheme, "s3", StringComparison.OrdinalIgnoreCase) ||
+                !uri.IsDefaultPort ||
                 string.IsNullOrWhiteSpace(uri.Host) ||
                 string.IsNullOrEmpty(uri.AbsolutePath.Trim('/')) ||
                 !string.IsNullOrEmpty(uri.UserInfo) ||
@@ -113,7 +114,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.DataCapture
                 return false;
             }
 
-            var originalPathStart = uri.OriginalString.IndexOf('/', "minio://".Length);
+            var originalPathStart = uri.OriginalString.IndexOf('/', "s3://".Length);
             if (originalPathStart < 0)
             {
                 return false;

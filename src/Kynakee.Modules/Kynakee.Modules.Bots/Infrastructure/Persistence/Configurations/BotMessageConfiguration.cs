@@ -66,11 +66,11 @@ public sealed class BotMessageConfiguration : IEntityTypeConfiguration<BotMessag
         builder.Ignore(message => message.Version);
 
         builder.HasIndex(message => new
-            {
-                message.TenantId,
-                message.ConversationId,
-                message.CreatedAt
-            })
+        {
+            message.TenantId,
+            message.ConversationId,
+            message.CreatedAt
+        })
             .HasDatabaseName("idx_bot_messages_conversation");
     }
 }

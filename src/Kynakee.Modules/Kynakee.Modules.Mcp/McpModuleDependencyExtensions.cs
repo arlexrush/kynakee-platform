@@ -1,14 +1,14 @@
-﻿using Kynakee.Modules.Mcp.Infrastructure.Persistence;
-using Kynakee.Modules.Mcp.Domain.Repositories;
-using Kynakee.Modules.Mcp.Infrastructure.Repositories;
+﻿using Kynakee.Modules.Mcp.Application.Commands.RegisterMcpProvider;
 using Kynakee.Modules.Mcp.Contracts;
+using Kynakee.Modules.Mcp.Domain.Repositories;
 using Kynakee.Modules.Mcp.Infrastructure.Client;
+using Kynakee.Modules.Mcp.Infrastructure.Persistence;
+using Kynakee.Modules.Mcp.Infrastructure.Repositories;
 using Kynakee.Modules.SharedKernel.Contracts;
+using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using FluentValidation;
-using Kynakee.Modules.Mcp.Application.Commands.RegisterMcpProvider;
 
 namespace Kynakee.Modules.Mcp
 {

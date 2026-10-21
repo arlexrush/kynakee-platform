@@ -12,18 +12,22 @@ public sealed class RefreshSessionCommandHandler
     private readonly IIdentityRepository _repository;
     private readonly IIdentityTokenService _tokenService;
     private readonly TimeProvider _timeProvider;
+    private readonly IAccountActionRepository _actions;
 
     public RefreshSessionCommandHandler(
         IIdentityRepository repository,
         IIdentityTokenService tokenService,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IAccountActionRepository actions)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(tokenService);
         ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentNullException.ThrowIfNull(actions);
         _repository = repository;
         _tokenService = tokenService;
         _timeProvider = timeProvider;
+        _actions = actions;
     }
 
     public async Task<Result<IdentitySessionResponse>> Handle(
@@ -31,8 +35,15 @@ public sealed class RefreshSessionCommandHandler
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var now = _timeProvider.GetUtcNow();
         var tokenHash = _tokenService.HashToken(request.RefreshToken);
+        var email = await _repository.FindRefreshTokenEmailAsync(tokenHash, cancellationToken).ConfigureAwait(false);
+        if (email is null)
+        {
+            return InvalidRefreshToken();
+        }
+
+        await _actions.LockEmailAsync(email, cancellationToken).ConfigureAwait(false);
+        var now = _timeProvider.GetUtcNow();
         var currentToken = await _repository.FindRefreshTokenByHashAsync(tokenHash, cancellationToken)
             .ConfigureAwait(false);
         if (currentToken is null || !currentToken.IsUsableAt(now))

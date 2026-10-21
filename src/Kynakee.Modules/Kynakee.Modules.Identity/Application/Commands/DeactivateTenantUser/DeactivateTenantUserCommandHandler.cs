@@ -33,12 +33,11 @@ public sealed class DeactivateTenantUserCommandHandler : IRequestHandler<Deactiv
             return Forbidden();
         }
 
-        var actor = await _repository.GetTenantUserAsync(
-                request.TenantId,
-                _tenantContext.UserId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (actor is null || actor.Role != UserRole.Owner)
+        await _repository.AcquireTenantOwnerLockAsync(request.TenantId, cancellationToken).ConfigureAwait(false);
+
+        if (!await IdentityAccess.HasActiveMembershipAsync(
+                _repository, request.TenantId, _tenantContext.UserId, cancellationToken, UserRole.Owner)
+                .ConfigureAwait(false))
         {
             return Forbidden();
         }
@@ -51,6 +50,11 @@ public sealed class DeactivateTenantUserCommandHandler : IRequestHandler<Deactiv
         {
             return ResultFactory.Failure(ApplicationError.NotFound(
                 "IDENTITY_TENANT_USER_NOT_FOUND", "The tenant user was not found."));
+        }
+        if (target.Version != request.ExpectedVersion)
+        {
+            return ResultFactory.Failure(ApplicationError.Conflict(
+                "IDENTITY_PRECONDITION_FAILED", "The tenant membership has changed. Fetch the latest version before retrying."));
         }
 
         if (target.Role == UserRole.Owner && user.Status == UserStatus.Active &&

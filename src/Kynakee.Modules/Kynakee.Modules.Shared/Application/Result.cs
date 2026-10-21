@@ -8,13 +8,13 @@
     /// aportar información adicional (por ejemplo, errores, mensajes o códigos).</remarks>
     public interface IResult
     {
-        bool IsSuccess { get; }        
+        bool IsSuccess { get; }
     }
 
 
     public static class ResultFactory
     {
-        
+
         public static Result<T> Success<T>(T value) => new(true, value, null);
         public static Result<T> Failure<T>(ApplicationError error) => new(false, default, error);
         public static Result Ok() => new(true, null);
@@ -34,7 +34,7 @@
     ///   return Result.Failure{Project}(Error.NotFound("PROJ_001", "Project not found"));
     /// </summary>
     /// <typeparam name="T">The type of the value returned on success.</typeparam>
-    public sealed class Result<T>: IResult
+    public sealed class Result<T> : IResult
     {
         // ── Properties ────────────────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@
             Value = value;
             Error = error;
         }
-        
+
 
         // ── Functional helpers ────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@
             ArgumentNullException.ThrowIfNull(onSuccess);
             ArgumentNullException.ThrowIfNull(onFailure);
 
-            if(IsSuccess)
+            if (IsSuccess)
             {
                 return onSuccess(Value!);
             }
@@ -101,12 +101,12 @@
                 ? ResultFactory.Success(mapper(Value!))
                 : ResultFactory.Failure<TNew>(Error!);
         }
-    }    
+    }
 
     /// <summary>
     /// Non-generic Result for operations that do not return a value (void commands).
     /// </summary>
-    public sealed class Result: IResult
+    public sealed class Result : IResult
     {
         /// <summary>Indicates whether the operation succeeded.</summary>
         public bool IsSuccess { get; }
@@ -121,8 +121,8 @@
         {
             IsSuccess = isSuccess;
             Error = error;
-        }        
-               
+        }
+
         /// <summary>
         /// Executes onSuccess if the result is successful, otherwise onFailure.
         /// </summary>

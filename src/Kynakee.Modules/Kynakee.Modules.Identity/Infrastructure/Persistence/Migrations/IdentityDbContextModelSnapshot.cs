@@ -114,6 +114,12 @@ namespace Kynakee.Modules.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
+                    b.Property<Guid>("CredentialVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("credential_version")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
@@ -174,6 +180,99 @@ namespace Kynakee.Modules.Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("users", "schema_identity", t =>
                         {
                             t.HasCheckConstraint("ck_identity_users_deleted", "is_deleted = (deleted_at IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Kynakee.Modules.Identity.Domain.Entities.AccountActionToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("purpose");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ux_identity_account_tokens_hash");
+
+                    b.HasIndex("TenantId", "UserId", "Purpose", "IssuedAt")
+                        .HasDatabaseName("ix_identity_account_tokens_owner_purpose");
+
+                    b.ToTable("account_action_tokens", "schema_identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_identity_account_tokens_deleted", "is_deleted = (deleted_at IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_identity_account_tokens_expiry", "expires_at > issued_at");
+
+                            t.HasCheckConstraint("ck_identity_account_tokens_purpose", "purpose IN ('VerifyEmail', 'ResetPassword')");
+
+                            t.HasCheckConstraint("ck_identity_account_tokens_terminal", "consumed_at IS NULL OR revoked_at IS NULL");
                         });
                 });
 
@@ -395,6 +494,258 @@ namespace Kynakee.Modules.Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("user_invitations", "schema_identity", t =>
                         {
                             t.HasCheckConstraint("ck_identity_user_invitations_deleted", "is_deleted = (deleted_at IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Kynakee.Modules.Identity.Infrastructure.Persistence.AccountEmailJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<byte[]>("EncryptedPayload")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("encrypted_payload");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TokenId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("token_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_identity_account_email_token");
+
+                    b.HasIndex("NextAttemptAt", "Id")
+                        .HasDatabaseName("ix_identity_account_email_pending")
+                        .HasFilter("completed_at IS NULL AND NOT is_deleted");
+
+                    b.HasIndex("TenantId", "TokenId");
+
+                    b.ToTable("account_email_jobs", "schema_identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_identity_account_email_deleted", "is_deleted = (deleted_at IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Kynakee.Modules.Identity.Infrastructure.Persistence.IdentityIdempotencyRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key_hash");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<byte[]>("_encryptedOutcome")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("encrypted_outcome");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_identity_idempotency_records_expiry");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique()
+                        .HasDatabaseName("ux_identity_idempotency_records_tenant_key");
+
+                    b.ToTable("idempotency_records", "schema_identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_identity_idempotency_records_deleted", "is_deleted = (deleted_at IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Kynakee.Modules.Identity.Infrastructure.Persistence.InvitationEmailJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<byte[]>("EncryptedPayload")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("encrypted_payload");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<Guid>("InvitationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invitation_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvitationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_identity_email_jobs_invitation");
+
+                    b.HasIndex("NextAttemptAt", "Id")
+                        .HasDatabaseName("ix_identity_email_jobs_pending")
+                        .HasFilter("completed_at IS NULL AND NOT is_deleted");
+
+                    b.HasIndex("TenantId", "InvitationId");
+
+                    b.ToTable("invitation_email_jobs", "schema_identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_identity_email_jobs_deleted", "is_deleted = (deleted_at IS NOT NULL)");
                         });
                 });
 
@@ -634,11 +985,41 @@ namespace Kynakee.Modules.Identity.Infrastructure.Persistence.Migrations
                     b.Navigation("Phone");
                 });
 
+            modelBuilder.Entity("Kynakee.Modules.Identity.Domain.Entities.AccountActionToken", b =>
+                {
+                    b.HasOne("Kynakee.Modules.Identity.Domain.Aggregates.User", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "UserId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Kynakee.Modules.Identity.Domain.Entities.TenantUser", b =>
                 {
                     b.HasOne("Kynakee.Modules.Identity.Domain.Aggregates.User", null)
                         .WithMany()
                         .HasForeignKey("TenantId", "UserId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Kynakee.Modules.Identity.Infrastructure.Persistence.AccountEmailJob", b =>
+                {
+                    b.HasOne("Kynakee.Modules.Identity.Domain.Entities.AccountActionToken", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "TokenId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Kynakee.Modules.Identity.Infrastructure.Persistence.InvitationEmailJob", b =>
+                {
+                    b.HasOne("Kynakee.Modules.Identity.Domain.Entities.UserInvitation", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "InvitationId")
                         .HasPrincipalKey("TenantId", "Id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
