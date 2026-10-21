@@ -5,13 +5,13 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
     public abstract record APUComponentDefinition(
     Guid SourceComponentId,
     string Description,
-    MeasurementUnit Unit,    
+    MeasurementUnit Unit,
     string? FallbackIndicator);
 
     public sealed record MaterialComponentDefinition(
         Guid SourceComponentId,
         string Description,
-        MeasurementUnit Unit,        
+        MeasurementUnit Unit,
         decimal WastePercentage,
         bool TransportIncluded,
         decimal QuantityPerApuUnit,
@@ -25,7 +25,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
     public sealed record LaborComponentDefinition(
         Guid SourceComponentId,
         string Description,
-        MeasurementUnit Unit,        
+        MeasurementUnit Unit,
         string Trade,
         decimal CrewSize,
         decimal Productivity,
@@ -33,13 +33,13 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
         : APUComponentDefinition(
             SourceComponentId,
             Description,
-            Unit,            
+            Unit,
             FallbackIndicator);
 
     public sealed record EquipmentComponentDefinition(
         Guid SourceComponentId,
         string Description,
-        MeasurementUnit Unit,        
+        MeasurementUnit Unit,
         string EquipmentCategory,
         decimal EquipmentCount,
         decimal HoursPerApuUnit,
@@ -47,13 +47,13 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
         : APUComponentDefinition(
             SourceComponentId,
             Description,
-            Unit,            
+            Unit,
             FallbackIndicator);
 
     public sealed record TransportComponentDefinition(
         Guid SourceComponentId,
         string Description,
-        MeasurementUnit Unit,        
+        MeasurementUnit Unit,
         decimal DistanceKm,
         decimal VehicleCapacity,
         TransportRateBasis TransportRateBasis,
@@ -63,20 +63,20 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
         : APUComponentDefinition(
             SourceComponentId,
             Description,
-            Unit,           
+            Unit,
             FallbackIndicator);
 
     public sealed record SubcontractComponentDefinition(
         Guid SourceComponentId,
         string Description,
-        MeasurementUnit Unit,        
+        MeasurementUnit Unit,
         string ContractConditions,
         decimal QuantityPerApuUnit,
         string? FallbackIndicator = null)
         : APUComponentDefinition(
             SourceComponentId,
             Description,
-            Unit,            
+            Unit,
             FallbackIndicator);
 
     public sealed record AuxiliaryMeansComponentDefinition(
@@ -88,6 +88,6 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
         : APUComponentDefinition(
             SourceComponentId,
             Description,
-            Unit,           
+            Unit,
             FallbackIndicator);
 }

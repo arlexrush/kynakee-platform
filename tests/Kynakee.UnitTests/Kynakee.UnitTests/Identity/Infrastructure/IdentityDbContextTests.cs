@@ -1,10 +1,10 @@
 using FluentAssertions;
 using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Domain.Entities;
-using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.Identity.Infrastructure.Persistence;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using Xunit;
 
 namespace Kynakee.UnitTests.Identity.Infrastructure;
@@ -17,6 +17,36 @@ public class IdentityDbContextTests
         using var context = CreateContext();
 
         context.Model.GetDefaultSchema().Should().Be("schema_identity");
+    }
+
+    [Fact]
+    public void TenantFilterOtherTenantShouldRejectRoot()
+    {
+        using var context = CreateContext();
+        var tenant = Tenant.Create("Other tenant",
+            Kynakee.Modules.Identity.Domain.ValueObjects.TenantSlug.Create("other-tenant").Value,
+            Kynakee.Modules.Identity.Domain.ValueObjects.TenantType.Company, null, null, "starter").Value!;
+        var filter = context.Model.FindEntityType(typeof(Tenant))!
+            .GetDeclaredQueryFilters().Single().Expression as Expression<Func<Tenant, bool>>
+            ?? throw new InvalidOperationException("Tenant filter is required.");
+
+        var matches = filter.Compile()(tenant);
+
+        matches.Should().BeFalse();
+    }
+
+    [Fact]
+    public void TenantFilterCurrentTenantShouldAllowRoot()
+    {
+        var tenant = Tenant.Create("Own tenant",
+            Kynakee.Modules.Identity.Domain.ValueObjects.TenantSlug.Create("own-tenant").Value,
+            Kynakee.Modules.Identity.Domain.ValueObjects.TenantType.Company, null, null, "starter").Value!;
+        var options = new DbContextOptionsBuilder<IdentityDbContext>()
+            .UseNpgsql("Host=localhost;Database=identity-tests;Username=test;Password=test").Options;
+        using var context = new IdentityDbContext(options, new TestTenantContext { TenantId = tenant.Id });
+        var query = context.Tenants.ToQueryString();
+
+        query.Should().Contain(tenant.Id.ToString("D"));
     }
 
     [Fact]
@@ -94,7 +124,7 @@ public class IdentityDbContextTests
 
     private sealed class TestTenantContext : ITenantContext
     {
-        public Guid TenantId { get; } = Guid.NewGuid();
+        public Guid TenantId { get; init; } = Guid.NewGuid();
 
         public Guid UserId { get; } = Guid.NewGuid();
 

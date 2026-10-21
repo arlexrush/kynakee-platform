@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Serilog.AspNetCore;
 using Serilog;
 
 namespace Kynakee.Gateway
@@ -26,6 +27,8 @@ namespace Kynakee.Gateway
                 .ValidateOnStart();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer();
+
+            /// Configure JWT Bearer options using the bound GatewayAuthenticationOptions
             builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
                 .Configure<IOptions<GatewayAuthenticationOptions>>((options, authenticationOptions) =>
                 {
@@ -44,13 +47,19 @@ namespace Kynakee.Gateway
                     };
                 })
                 .ValidateOnStart();
+
+
             builder.Services.AddAuthorization();
-            builder.Services.AddSingleton<RedisConnectionFactory>();
+
+
+            builder.Services.AddSingleton<RedisConnectionFactory>(); // Register RedisConnectionFactory as a singleton
             builder.Services.AddOptions<RedisRateLimitOptions>()
                 .Bind(builder.Configuration.GetSection("RateLimiting"))
                 .Validate(options => options.PermitLimit > 0 && options.WindowSeconds > 0,
                     "Rate limiting values must be greater than zero.")
                 .ValidateOnStart();
+
+
             builder.Services.AddHealthChecks()
                 .AddCheck<RedisHealthCheck>("redis", tags: ["ready"])
                 .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
@@ -62,7 +71,8 @@ namespace Kynakee.Gateway
 
             var app = builder.Build();
 
-            app.UseMiddleware<CorrelationIdMiddleware>();
+            // Middleware configuration
+            app.UseMiddleware<CorrelationIdMiddleware>(); // Serve the CorrelationIdMiddleware to generate and propagate correlation IDs
             app.UseSerilogRequestLogging(options =>
             {
                 options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
@@ -71,15 +81,17 @@ namespace Kynakee.Gateway
                     diagnosticContext.Set("UserId", httpContext.User.FindFirst("sub")?.Value ?? "anonymous");
                     diagnosticContext.Set("CorrelationId", httpContext.Request.Headers[CorrelationIdMiddleware.HeaderName].ToString());
                 };
-            });
+            }); // Use Serilog request logging middleware with enriched diagnostic context for tenant ID, user ID, and correlation ID
+
 
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.MapOpenApi(); // Map OpenAPI endpoints for development environment
             }
 
+            // Use authentication and authorization middleware
             app.UseAuthentication();
-            app.UseMiddleware<RedisSlidingWindowRateLimiterMiddleware>();
+            app.UseMiddleware<RedisSlidingWindowRateLimiterMiddleware>(); // Use custom rate limiting middleware
             app.UseAuthorization();
 
             app.MapHealthChecks("/health");
@@ -91,7 +103,7 @@ namespace Kynakee.Gateway
             {
                 Predicate = check => check.Tags.Contains("live")
             });
-            app.MapReverseProxy().RequireAuthorization();
+            app.MapReverseProxy(); // Map reverse proxy endpoints   
 
             app.Run();
         }

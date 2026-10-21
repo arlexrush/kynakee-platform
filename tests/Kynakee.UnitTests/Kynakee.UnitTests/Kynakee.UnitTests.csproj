@@ -28,8 +28,13 @@
   <ItemGroup>
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\ValidationBehavior.cs" Link="Api\Behaviors\ValidationBehavior.cs" />
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\TenantIsolationBehavior.cs" Link="Api\Behaviors\TenantIsolationBehavior.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\TransactionBehavior.cs" Link="Api\Behaviors\TransactionBehavior.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Application\Abstractions\ITransactionManager.cs" Link="Api\Abstractions\ITransactionManager.cs" />
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Abstractions\ITenantContextWriter.cs" Link="Api\Abstractions\ITenantContextWriter.cs" />
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Abstractions\HttpTenantContext.cs" Link="Api\Abstractions\HttpTenantContext.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Infrastructure\Identity\IdentityUniqueConstraintExceptionHandler.cs" Link="Api\Infrastructure\Identity\IdentityUniqueConstraintExceptionHandler.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Infrastructure\Identity\IdentityEntityTagProtector.cs" Link="Api\Infrastructure\Identity\IdentityEntityTagProtector.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Infrastructure\Identity\IdentityHttpIdempotencyProtector.cs" Link="Api\Infrastructure\Identity\IdentityHttpIdempotencyProtector.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Microsoft.AspNetCore.Http" />

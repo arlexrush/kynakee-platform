@@ -69,11 +69,11 @@ public sealed class BotConversationConfiguration : IEntityTypeConfiguration<BotC
             .IsConcurrencyToken();
 
         builder.HasIndex(conversation => new
-            {
-                conversation.TenantId,
-                conversation.Channel,
-                conversation.ExternalId
-            })
+        {
+            conversation.TenantId,
+            conversation.Channel,
+            conversation.ExternalId
+        })
             .IsUnique()
             .HasFilter("is_deleted = FALSE")
             .HasDatabaseName("idx_bot_conversations_external");

@@ -8,10 +8,11 @@ public sealed record UpdateTenantProfileCommand(
     string Slug,
     string? TaxId,
     string? TaxCountry,
-    string FiscalCountry,
+    string? FiscalCountry,
     string? Region,
     string? Province,
     string? Municipality,
     string? PostalCode,
     string? Street,
-    string PlanId) : ICommand;
+    string PlanId,
+    uint ExpectedVersion) : ICommand;

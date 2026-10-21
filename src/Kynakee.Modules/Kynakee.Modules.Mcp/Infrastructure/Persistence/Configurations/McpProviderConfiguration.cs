@@ -1,5 +1,4 @@
 using Kynakee.Modules.Mcp.Domain.Aggregates;
-using Kynakee.Modules.Mcp.Domain.Entities;
 using Kynakee.Modules.Mcp.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

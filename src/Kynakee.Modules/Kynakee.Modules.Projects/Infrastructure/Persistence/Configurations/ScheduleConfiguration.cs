@@ -1,10 +1,10 @@
-﻿using System.Text.Json;
-using Kynakee.Modules.Projects.Domain.Aggregates;
+﻿using Kynakee.Modules.Projects.Domain.Aggregates;
 using Kynakee.Modules.Projects.Domain.Entities.Planning;
 using Kynakee.Modules.Projects.Domain.ValueObjects;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Text.Json;
 
 namespace Kynakee.Modules.Projects.Infrastructure.Persistence.Configurations;
 
@@ -134,7 +134,7 @@ public sealed class ScheduleConfiguration :
                     new ValueComparer<IReadOnlyList<WorkItemId>>(
                         (left, right) => left == null ? right == null : right != null &&
                         SerializeWorkItemIds(left) == SerializeWorkItemIds(right),
-                        value => value == null ? 0 : SerializeWorkItemIds(value).GetHashCode(),
+                        value => value == null ? 0 : SerializeWorkItemIds(value).GetHashCode(StringComparison.Ordinal),
                         value => value == null ? null! : value.ToArray()));
             });
 
@@ -234,7 +234,7 @@ public sealed class ScheduleConfiguration :
             new ValueComparer<List<ScheduleActivityId>>(
                 (left, right) => left == null ? right == null : right != null &&
                     SerializeActivityIds(left) == SerializeActivityIds(right),
-                value => value == null ? 0 : SerializeActivityIds(value).GetHashCode(),
+                value => value == null ? 0 : SerializeActivityIds(value).GetHashCode(StringComparison.Ordinal),
                 value => value.ToList()));
     }
 

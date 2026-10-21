@@ -9,4 +9,5 @@ public sealed record UpdateTenantSettingsCommand(
     decimal Quality,
     decimal SafetyHealth,
     decimal Environment,
-    decimal Contingency) : ICommand;
+    decimal Contingency,
+    uint ExpectedVersion) : ICommand;

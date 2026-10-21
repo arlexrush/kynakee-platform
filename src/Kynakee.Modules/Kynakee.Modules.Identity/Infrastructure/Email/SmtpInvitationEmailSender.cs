@@ -1,13 +1,16 @@
-using System.Net.Mail;
-using System.Text.Encodings.Web;
 using Kynakee.Modules.Identity.Application.Contracts;
 using Microsoft.Extensions.Configuration;
+using System.Net.Mail;
+using System.Globalization;
+using System.Resources;
+using System.Text.Encodings.Web;
 
 namespace Kynakee.Modules.Identity.Infrastructure.Email;
 
 internal sealed class SmtpInvitationEmailSender : IInvitationEmailSender
 {
     private static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(15);
+    private static readonly ResourceManager Resources = new("Kynakee.Modules.Identity.Infrastructure.IdentityPersistenceResources", typeof(SmtpInvitationEmailSender).Assembly);
     private readonly IConfiguration _configuration;
     private readonly ISmtpInvitationTransport _transport;
 
@@ -38,46 +41,35 @@ internal sealed class SmtpInvitationEmailSender : IInvitationEmailSender
         if (!Uri.TryCreate(invitationBaseUrl, UriKind.Absolute, out var invitationUri) ||
             invitationUri.Scheme != Uri.UriSchemeHttps)
         {
-            throw new InvalidOperationException("Authentication:InvitationBaseUrl must be an absolute HTTPS URL.");
+            throw new InvalidOperationException(Resources.GetString("MailInvitationUrlInvalid", CultureInfo.CurrentUICulture));
         }
 
         var port = _configuration.GetValue("Smtp:Port", 587);
-        var username = _configuration["Smtp:Username"];
-        var password = _configuration["Smtp:Password"];
-        if (!string.IsNullOrWhiteSpace(username) && string.IsNullOrWhiteSpace(password))
+        if (port is < 1 or > 65535)
         {
-            throw new InvalidOperationException("Smtp:Password is required when Smtp:Username is configured.");
+            throw new InvalidOperationException(Resources.GetString("MailPortInvalid", CultureInfo.CurrentUICulture));
         }
 
         using var message = new MailMessage(new MailAddress(from), new MailAddress(recipientEmail))
         {
-            Subject = "Invitación a Kynakee",
+            Subject = Resources.GetString("MailInvitationSubject", CultureInfo.CurrentUICulture),
             Body = CreateBody(invitationUri, tenantName, invitationToken),
             IsBodyHtml = true
         };
 
-        try
-        {
-            await _transport.SendAsync(
+        await _transport.SendAsync(
                     message,
                     host,
                     port,
-                    username,
-                    password,
                     SendTimeout,
                     cancellationToken)
                 .ConfigureAwait(false);
-        }
-        finally
-        {
-            message.Dispose();
-        }
     }
 
     private string RequiredSetting(string key) =>
-        _configuration[key] is { Length: > 0 } value
-            ? value
-            : throw new InvalidOperationException($"Configuration setting '{key}' is required to send invitation emails.");
+        !string.IsNullOrWhiteSpace(_configuration[key]) ? _configuration[key]!
+            : throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
+                Resources.GetString("MailSettingRequired", CultureInfo.CurrentUICulture)!, key));
 
     private static string CreateBody(Uri invitationUri, string tenantName, string invitationToken)
     {
@@ -87,6 +79,6 @@ internal sealed class SmtpInvitationEmailSender : IInvitationEmailSender
         }.Uri.AbsoluteUri;
         var safeTenantName = HtmlEncoder.Default.Encode(tenantName);
         var safeLink = HtmlEncoder.Default.Encode(invitationLink);
-        return $"<p>Has sido invitado a {safeTenantName} en Kynakee.</p><p><a href=\"{safeLink}\">Aceptar invitación</a></p>";
+        return string.Format(CultureInfo.CurrentCulture, Resources.GetString("MailInvitationBody", CultureInfo.CurrentUICulture)!, safeTenantName, safeLink);
     }
 }

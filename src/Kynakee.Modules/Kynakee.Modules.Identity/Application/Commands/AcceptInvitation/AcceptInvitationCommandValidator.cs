@@ -1,5 +1,5 @@
-using FluentValidation;
 using Kynakee.Modules.Identity.Application.Validation;
+using FluentValidation;
 
 namespace Kynakee.Modules.Identity.Application.Commands.AcceptInvitation;
 

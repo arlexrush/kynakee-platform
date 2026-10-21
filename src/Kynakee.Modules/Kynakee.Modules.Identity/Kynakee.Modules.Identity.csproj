@@ -12,6 +12,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.Identity.Client" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -21,5 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Domain\Repositories\" />
+    <Folder Include="Infrastructure\Persistence\Migrations\" />
   </ItemGroup>
 </Project>

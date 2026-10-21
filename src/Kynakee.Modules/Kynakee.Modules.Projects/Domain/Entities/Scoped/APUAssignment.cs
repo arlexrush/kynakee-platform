@@ -550,7 +550,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
                         "PROJ_APU_PRICING_TENANT_MISMATCH",
                         "The pricing belongs to another tenant."));
             }
-                       
+
 
             var componentExists = _components.SingleOrDefault(
                 component => component.Id == pricing.APUComponentId);
@@ -599,7 +599,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
                         assignmentId,
                         material.SourceComponentId,
                         material.Description,
-                        material.Unit,                        
+                        material.Unit,
                         material.WastePercentage,
                         material.TransportIncluded,
                         material.QuantityPerApuUnit,
@@ -613,7 +613,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
                         labor.SourceComponentId,
                         labor.Description,
                         labor.Unit,
-                        labor.Trade,                            
+                        labor.Trade,
                         labor.CrewSize,
                         labor.Productivity,
                         labor.FallbackIndicator,
@@ -625,8 +625,8 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
                         assignmentId,
                         equipment.SourceComponentId,
                         equipment.Description,
-                        equipment.Unit,                        
-                        equipment.EquipmentCategory,                       
+                        equipment.Unit,
+                        equipment.EquipmentCategory,
                         equipment.EquipmentCount,
                         equipment.HoursPerApuUnit,
                         equipment.FallbackIndicator,
@@ -638,7 +638,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
                         assignmentId,
                         transport.SourceComponentId,
                         transport.Description,
-                        transport.Unit,                        
+                        transport.Unit,
                         transport.DistanceKm,
                         transport.VehicleCapacity,
                         transport.TransportRateBasis,
@@ -653,10 +653,10 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
                         assignmentId,
                         subcontract.SourceComponentId,
                         subcontract.Description,
-                        subcontract.Unit,                        
+                        subcontract.Unit,
                         subcontract.ContractConditions,
                         subcontract.QuantityPerApuUnit,
-                        subcontract.FallbackIndicator,                        
+                        subcontract.FallbackIndicator,
                         createdBy).Map(component => (APUComponent)component),
 
                 AuxiliaryMeansComponentDefinition auxiliary =>

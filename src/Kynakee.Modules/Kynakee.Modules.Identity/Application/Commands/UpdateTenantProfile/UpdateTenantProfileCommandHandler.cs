@@ -27,12 +27,9 @@ public sealed class UpdateTenantProfileCommandHandler : IRequestHandler<UpdateTe
             return Forbidden();
         }
 
-        var membership = await _repository.GetTenantUserAsync(
-                request.TenantId,
-                _tenantContext.UserId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (membership is null || membership.Role is not (UserRole.Owner or UserRole.Admin))
+        if (!await IdentityAccess.HasActiveMembershipAsync(
+                _repository, request.TenantId, _tenantContext.UserId, cancellationToken, UserRole.Owner, UserRole.Admin)
+                .ConfigureAwait(false))
         {
             return Forbidden();
         }
@@ -43,6 +40,10 @@ public sealed class UpdateTenantProfileCommandHandler : IRequestHandler<UpdateTe
         {
             return ResultFactory.Failure(ApplicationError.NotFound(
                 "IDENTITY_TENANT_NOT_FOUND", "The tenant was not found."));
+        }
+        if (tenant.Version != request.ExpectedVersion)
+        {
+            return PreconditionFailed();
         }
 
         var slug = TenantSlug.Create(request.Slug);
@@ -56,27 +57,35 @@ public sealed class UpdateTenantProfileCommandHandler : IRequestHandler<UpdateTe
         }
 
         var taxId = request.TaxId is null ? null : TaxId.Create(request.TaxId, request.TaxCountry);
-        var address = Address.Create(
-            request.FiscalCountry,
-            request.Region,
-            request.Province,
-            request.Municipality,
-            request.PostalCode,
-            request.Street);
-        if (slug.IsFailure || taxId?.IsFailure == true || address.IsFailure)
+        Result<Address>? address = null;
+        if (UpdateTenantProfileCommandValidator.HasFiscalAddress(request))
         {
-            return ResultFactory.Failure(slug.Error ?? taxId?.Error ?? address.Error!);
+            address = Address.Create(
+                request.FiscalCountry,
+                request.Region,
+                request.Province,
+                request.Municipality,
+                request.PostalCode,
+                request.Street);
+        }
+
+        if (slug.IsFailure || taxId?.IsFailure == true || address?.IsFailure == true)
+        {
+            return ResultFactory.Failure(slug.Error ?? taxId?.Error ?? address?.Error!);
         }
 
         return tenant.UpdateProfile(
             request.Name,
             slug.Value,
             taxId?.Value,
-            address.Value,
+            address?.Value,
             request.PlanId,
             _tenantContext.UserId);
     }
 
     private static Result Forbidden() => ResultFactory.Failure(ApplicationError.Unauthorized(
         "IDENTITY_TENANT_PROFILE_FORBIDDEN", "Only tenant owners and administrators can update tenant profile."));
+
+    private static Result PreconditionFailed() => ResultFactory.Failure(ApplicationError.Conflict(
+        "IDENTITY_PRECONDITION_FAILED", "The tenant profile has changed. Fetch the latest version before retrying."));
 }

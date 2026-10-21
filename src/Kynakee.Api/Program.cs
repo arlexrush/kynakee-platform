@@ -25,16 +25,20 @@ namespace Kynakee.Api
                 app.MapOpenApi();
             }
 
-            app.UseRateLimiter();
-            app.UseStaticFiles();
-            app.UseAuthentication();
-            app.UseAuthorization();
+            // Middleware configuration
+            app.UseExceptionHandler(); // Use exception handling middleware
+            app.UseRateLimiter(); // Use rate limiting middleware
+            app.UseStaticFiles(); // Serve static files
+            app.UseAuthentication(); // Use authentication middleware
+            app.UseAuthorization(); // Use authorization middleware
+
+
 
             app.MapHealthChecks("/health");
             app.MapIdentityEndpoints();
             app.MapBillingEndpoints();
             app.MapFallbackToFile("/modelo-datos/{*path:nonfile}", "modelo-datos/index.html");
-                                      
+
 
             app.Run();
         }

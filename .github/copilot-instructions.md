@@ -7,6 +7,10 @@ You are assisting with the **Kynakee** platform: an AI-powered construction budg
 
 The repository uses three branches/environments: develop for development, staged for staging, and master for production. There must be three separate Compose files, and the naming convention must be consistent: docker-compose.dev.yml, docker-compose.staged.yml, and docker-compose.prod.yml. Each repository maintains its own Docker Compose. The kynakee-platform repository does not build or start kynakee-web; its local Compose includes backend infrastructure, `Kynakee.Gateway`, `Kynakee.Api`, and ngrok. The gateway is the only published HTTP entry point and the API is internal to the Compose network. The kynakee-web repository retains its independent Compose. The repository contains an independent project `Kynakee.Gateway`; it must not be assumed that the gateway YARP is within `Kynakee.Api`. The Docker topology and conclusions regarding the Compose must be reviewed considering this explicit project.
 
+**Environment Prioritization:**
+- Prioritize local development (dev) and production (prod) environments; staging is postponed due to costs, retaining its files without declaring the operational environment.
+- Use SeaweedFS for S3 in the dev environment and Hetzner Object Storage in the prod environment. Use the AWSSDK.S3 client with the ObjectStorage configuration section and s3:// media references; do not introduce provider-specific storage names or legacy configuration fallbacks. Preserve existing Docker resources unless separately authorized to remove them.
+
 ---
 
 ## ABSOLUTE RULES — Enforce on every code generation
@@ -43,7 +47,19 @@ The repository uses three branches/environments: develop for development, staged
 ### Integration Events
 - NEVER publish directly to RabbitMQ
 - ALWAYS use MassTransit `IPublishEndpoint` (Outbox Pattern)
-- ALL integration event consumers MUST check idempotency key before processing
+- ALL integration event consumers MUST deduplicate by stable event ID and consumer identity
+- Consumer idempotency claims and local effects MUST be atomic; never use a check-then-mark sequence
+- For external effects, use an operation-specific idempotency mechanism or durable handoff
+- Do not declare Outbox, shared idempotency storage, or end-to-end delivery operational until implemented and verified; these cross-cutting pieces are currently postponed
+
+### HTTP Command Idempotency
+- Define per-module which retryable commands require `Idempotency-Key`; do not impose it on every endpoint by default
+- Scope keys to operation and authenticated tenant/caller; anonymous scopes MUST include operation
+- Store only protected key derivations and keyed request fingerprints; NEVER log raw idempotency keys or credentials
+- Concurrent same-key/same-request execution MUST NOT duplicate business effects; key claim, effect, and replay outcome require atomic or durable coordination
+- Same scoped key with a different request fingerprint returns `409 Conflict` and MUST NOT execute a new effect
+- Specify replay, retention, failure recovery, and sensitive-result protection per operation; Identity's 24-hour target is not a global default
+- Distinguish documented contract from implemented, compiled, tested, and operational state; shared HTTP idempotency infrastructure remains pending unless separately verified
 
 ### Cross-Module Access
 - NEVER access another module's `DbContext` directly
@@ -71,6 +87,7 @@ The repository uses three branches/environments: develop for development, staged
 
 ### Documentation Governance
 - Ensure all repository documentation aligns with existing code and serves as governance and verifiable guidance for pending development; distinguish between implemented, compiled, tested, and pending states.
+- Before implementing or closing uniqueness, optimistic concurrency, idempotency, or persistence tests in any module, consult `docs/Gobernanza/Garantias-transversales-por-modulo.md`; evaluate the module-specific matrix and record concrete code/test evidence and limitations. Never infer a module's coverage from another module.
 
 ### Quick Checks
 - Prefer quick and scoped checks on edited files to prioritize updating the rest of the documentation.
@@ -82,6 +99,15 @@ The repository uses three branches/environments: develop for development, staged
 ### Bots Authentication
 - Users MUST authenticate via Telegram or WhatsApp before establishing a business conversation; the verified identity determines the associated tenant.
 - For this phase of Bots, plan for migration generation and testing in ephemeral PostgreSQL, without applying to existing databases.
+
+### Tenant Registration
+- In tenant registration, `FiscalAddress` must remain optional in the domain and persistence; the request can omit it or capture it from the initial registration. If address data is provided, validate it as a complete set (country, street, municipality, and postal code; region and province are optional).
+
+### Identity Account Activation
+- In Identity, verify the email address before activating the account; warn if the format is invalid or the address cannot be verified. Do not consider an immediate session registration as an approved final flow. Test all endpoints and flows, including invitations and real emails, distinguishing between implemented and pending.
+
+### Task Closure Confirmation
+- For the closure of US-003, tasks numbered 2, 3, 4, and 6 are confirmed resolved. They should not be treated as pending again unless new validation provides contrary evidence.
 
 ## Test Naming
 - ALL C# test methods MUST use PascalCase without underscores, hyphens, or other separators
@@ -247,4 +273,8 @@ result.Error!.Type switch
 ## Additional Prioritization
 - Prioritize completing domain models, data, and persistence for all modules and finalize the Behaviors. 
 - Close the local preparation of Billing and document its boundary explicitly; do not implement cross-cutting infrastructure for Outbox/transport and long-term integration between Identity and Billing until a later phase, indicating pending tasks without declaring full integration.
+
+### Identity Iterative Closure
+- In the current work on closing Identity, authorize continuing iteratively through all pending steps without requesting authorization between each step; upon completing each step, verify and communicate the percentage of progress, continuing until reaching 100%, and distinguish between implementation, testing, and actual operation without declaring closure in the presence of gaps.
+---
 

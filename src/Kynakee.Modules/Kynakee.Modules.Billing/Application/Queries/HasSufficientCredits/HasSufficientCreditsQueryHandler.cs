@@ -1,5 +1,6 @@
 using Kynakee.Modules.Billing.Application.Abstractions;
 using Kynakee.Modules.SharedKernel.Application;
+
 using MediatR;
 
 namespace Kynakee.Modules.Billing.Application.Queries.HasSufficientCredits;

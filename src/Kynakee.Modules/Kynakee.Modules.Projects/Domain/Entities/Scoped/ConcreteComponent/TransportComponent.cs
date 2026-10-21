@@ -15,7 +15,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,           
+            MeasurementUnit unit,
             string? fallbackIndicator,
             decimal distanceKm,
             decimal vehicleCapacity,
@@ -29,7 +29,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 apuAssignmentId,
                 sourceComponentId,
                 description,
-                unit,               
+                unit,
                 fallbackIndicator,
                 createdBy)
         {
@@ -46,7 +46,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
         public decimal QuantityPerApuUnit { get; private set; }
         public decimal DistanceKm { get; private set; }
         public decimal VehicleCapacity { get; private set; }
-        public TransportRateBasis TransportRateBasis { get; private set; } 
+        public TransportRateBasis TransportRateBasis { get; private set; }
         public decimal RoundTripFactor { get; private set; }
 
         public static Result<TransportComponent> Create(
@@ -54,7 +54,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,            
+            MeasurementUnit unit,
             decimal distanceKm,
             decimal vehicleCapacity,
             TransportRateBasis transportRateBasis,
@@ -80,8 +80,8 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                         "PROJ_APU_TRANSPORT_DESCRIPTION_INVALID",
                         "The transport description is invalid."));
             }
-            
-            if(!IsValidUnit(unit))
+
+            if (!IsValidUnit(unit))
             {
                 return ResultFactory.Failure<TransportComponent>(
                     ApplicationError.Validation(
@@ -113,7 +113,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 apuAssignmentId,
                 sourceComponentId,
                 description.Trim(),
-                unit,                
+                unit,
                 fallbackIndicator,
                 distanceKm,
                 vehicleCapacity,

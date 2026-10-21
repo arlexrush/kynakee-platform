@@ -31,7 +31,7 @@ public sealed class RevokeSessionCommandHandler : IRequestHandler<RevokeSessionC
                 _tokenService.HashToken(request.RefreshToken),
                 cancellationToken)
             .ConfigureAwait(false);
-        if (token is null)
+        if (token is null || token.RevokedAt is not null)
         {
             return ResultFactory.Ok();
         }

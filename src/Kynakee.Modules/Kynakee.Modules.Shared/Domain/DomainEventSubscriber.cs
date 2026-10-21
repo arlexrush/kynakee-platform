@@ -42,6 +42,6 @@
         /// Implement this method to define the side effects of the event.
         /// </summary>
         public abstract Task Handle(TEvent notification, CancellationToken cancellationToken);
-        
+
     }
 }

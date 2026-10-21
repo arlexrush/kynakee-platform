@@ -15,6 +15,31 @@ namespace Kynakee.Modules.Identity.Infrastructure.Persistence.Migrations
                 name: "schema_identity");
 
             migrationBuilder.CreateTable(
+                name: "idempotency_records",
+                schema: "schema_identity",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    key_hash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    fingerprint = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    expires_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    encrypted_outcome = table.Column<byte[]>(type: "bytea", nullable: false),
+                    tenant_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    created_by = table.Column<Guid>(type: "uuid", nullable: true),
+                    updated_by = table.Column<Guid>(type: "uuid", nullable: true),
+                    is_deleted = table.Column<bool>(type: "boolean", nullable: false),
+                    deleted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_idempotency_records", x => x.id);
+                    table.CheckConstraint("ck_identity_idempotency_records_deleted", "is_deleted = (deleted_at IS NOT NULL)");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "refresh_tokens",
                 schema: "schema_identity",
                 columns: table => new
@@ -171,6 +196,19 @@ namespace Kynakee.Modules.Identity.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "ix_identity_idempotency_records_expiry",
+                schema: "schema_identity",
+                table: "idempotency_records",
+                column: "expires_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ux_identity_idempotency_records_tenant_key",
+                schema: "schema_identity",
+                table: "idempotency_records",
+                column: "key_hash",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "ix_identity_refresh_tokens_owner_expiry",
                 schema: "schema_identity",
                 table: "refresh_tokens",
@@ -241,6 +279,10 @@ namespace Kynakee.Modules.Identity.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "idempotency_records",
+                schema: "schema_identity");
+
             migrationBuilder.DropTable(
                 name: "refresh_tokens",
                 schema: "schema_identity");

@@ -8,13 +8,13 @@ namespace Kynakee.UnitTests.Projects.Domain;
 public class CaptureExpedientTests
 {
     [Fact]
-    public void CreateShouldAcceptMinioBucketAndObjectKey()
+    public void CreateShouldAcceptS3BucketAndObjectKey()
     {
         var result = CaptureExpedient.Create(
             Guid.NewGuid(),
             new ProjectId(Guid.NewGuid()),
             [new CaptureMediaFile(
-                new Uri("minio://kynakee-media/projects/one/photo.jpg"),
+                new Uri("s3://kynakee-media/projects/one/photo.jpg"),
                 "image/jpeg",
                 "Kitchen",
                 false,
@@ -26,10 +26,15 @@ public class CaptureExpedientTests
 
     [Theory]
     [InlineData("https://storage.example.com/photo.jpg")]
-    [InlineData("minio:///photo.jpg")]
-    [InlineData("minio://kynakee-media/")]
-    [InlineData("minio://kynakee-media/../photo.jpg")]
-    [InlineData("minio://kynakee-media/photo.jpg?token=secret")]
+    [InlineData("s3:///photo.jpg")]
+    [InlineData("s3://kynakee-media/")]
+    [InlineData("s3://kynakee-media/../photo.jpg")]
+    [InlineData("s3://kynakee-media/photo.jpg?token=secret")]
+    [InlineData("s3://user:password@kynakee-media/photo.jpg")]
+    [InlineData("s3://kynakee-media:8333/photo.jpg")]
+    [InlineData("s3://kynakee-media/photo.jpg#fragment")]
+    [InlineData("s3://kynakee-media/%2e%2e/photo.jpg")]
+    [InlineData("s3://kynakee-media/folder%2fphoto.jpg")]
     public void CreateShouldRejectInvalidStorageUri(string input)
     {
         var uri = new Uri(input, UriKind.RelativeOrAbsolute);
@@ -54,7 +59,7 @@ public class CaptureExpedientTests
             Guid.NewGuid(),
             new ProjectId(Guid.NewGuid()),
             [new CaptureMediaFile(
-                new Uri("minio://kynakee-media/photo.jpg"),
+                new Uri("s3://kynakee-media/photo.jpg"),
                 " ",
                 null,
                 false,
@@ -71,7 +76,7 @@ public class CaptureExpedientTests
             Guid.NewGuid(),
             new ProjectId(Guid.NewGuid()),
             [new CaptureMediaFile(
-                new Uri("minio://kynakee-media/photo.jpg"),
+                new Uri("s3://kynakee-media/photo.jpg"),
                 new string('a', 101),
                 null,
                 false,

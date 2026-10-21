@@ -8,8 +8,6 @@ internal interface ISmtpInvitationTransport
         MailMessage message,
         string host,
         int port,
-        string? username,
-        string? password,
         TimeSpan timeout,
         CancellationToken cancellationToken);
 }

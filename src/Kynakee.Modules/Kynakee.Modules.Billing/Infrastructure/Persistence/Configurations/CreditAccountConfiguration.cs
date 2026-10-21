@@ -1,5 +1,4 @@
 using Kynakee.Modules.Billing.Domain.Aggregates;
-using Kynakee.Modules.Billing.Domain.Entities;
 using Kynakee.Modules.Billing.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

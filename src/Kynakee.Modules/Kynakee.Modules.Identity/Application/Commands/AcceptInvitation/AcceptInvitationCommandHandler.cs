@@ -1,5 +1,4 @@
 using Kynakee.Modules.Identity.Application.Abstractions;
-using Kynakee.Modules.Identity.Application.Commands;
 using Kynakee.Modules.Identity.Application.Contracts;
 using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Application;
@@ -52,7 +51,7 @@ public sealed class AcceptInvitationCommandHandler
             .ConfigureAwait(false);
         var tenant = await _repository.GetTenantForAuthenticationAsync(invitation.TenantId, cancellationToken)
             .ConfigureAwait(false);
-        var membership = await _repository.GetTenantUserAsync(invitation.TenantId, invitation.UserId, cancellationToken)
+        var membership = await _repository.GetTenantUserForAuthenticationAsync(invitation.TenantId, invitation.UserId, cancellationToken)
             .ConfigureAwait(false);
         if (user is null || tenant is null || tenant.Status != TenantStatus.Active ||
             membership is null || user.Status != UserStatus.PendingVerification)
