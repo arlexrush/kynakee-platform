@@ -2,10 +2,12 @@ using FluentAssertions;
 using FluentValidation;
 using Kynakee.Modules.Identity;
 using Kynakee.Modules.Identity.Contracts;
+using Kynakee.Modules.Identity.Application.Contracts;
 using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Domain.Entities;
 using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.Identity.Infrastructure.Persistence;
+using Kynakee.Modules.Identity.Infrastructure.MailDelivery;
 using Kynakee.Modules.Mcp;
 using Kynakee.Modules.Mcp.Application.Commands.AddMcpServer;
 using Kynakee.Modules.Mcp.Application.Commands.ChangeMcpProviderStatus;
@@ -19,6 +21,7 @@ using Kynakee.Modules.SharedKernel.Contracts;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -33,34 +36,55 @@ public sealed class McpManagementTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await _postgres.StartAsync(cancellationToken).ConfigureAwait(false);
+        await _postgres.StartAsync(cancellationToken).ConfigureAwait(true);
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ConnectionStrings:Postgres"] = _postgres.GetConnectionString()
+            ["ConnectionStrings:Postgres"] = _postgres.GetConnectionString(),
+            ["Identity:InvitationEmail:ActiveKeyId"] = "v1",
+            ["Identity:InvitationEmail:Keys:v1"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
         }).Build();
         services.AddLogging();
         services.AddSingleton<IConfiguration>(configuration);
         services.AddScoped<ITenantContext>(_ => _tenantContext);
         services.AddIdentityModule(configuration);
+        services.AddSingleton(new InvitationEmailPayloadProtector(configuration));
+        services.AddSingleton<AccountEmailPayloadProtector>();
+        services.AddSingleton(new Lazy<MailOAuthSession>(() => new MailOAuthSession(configuration)));
+        services.AddScoped<IInvitationEmailJobStore, InvitationEmailJobStore>();
+        services.AddScoped<IAccountEmailJobStore, AccountEmailJobStore>();
         services.AddMcpModule(configuration);
         services.AddMediatR(options => options.RegisterServicesFromAssembly(typeof(RegisterMcpProviderCommandHandler).Assembly));
         _services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
         using var scope = _services.CreateScope();
         var identity = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        await identity.Database.EnsureCreatedAsync(cancellationToken).ConfigureAwait(false);
+        await identity.Database.EnsureCreatedAsync(cancellationToken).ConfigureAwait(true);
         var mcp = scope.ServiceProvider.GetRequiredService<McpDbContext>();
-        await mcp.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-        await SeedIdentityAsync(UserRole.Owner).ConfigureAwait(false);
+        await mcp.Database.MigrateAsync(cancellationToken).ConfigureAwait(true);
+        await SeedIdentityAsync(UserRole.Owner).ConfigureAwait(true);
     }
 
     public async ValueTask DisposeAsync()
     {
         if (_services is not null)
         {
-            await _services.DisposeAsync().ConfigureAwait(false);
+            await _services.DisposeAsync().ConfigureAwait(true);
         }
-        await _postgres.DisposeAsync().ConfigureAwait(false);
+        await _postgres.DisposeAsync().ConfigureAwait(true);
+    }
+
+    [Theory]
+    [InlineData(typeof(IInvitationEmailJobStore))]
+    [InlineData(typeof(IAccountEmailJobStore))]
+    [InlineData(typeof(IInvitationEmailSender))]
+    [InlineData(typeof(IAccountEmailSender))]
+    public void IdentityMailDependenciesScopedResolutionShouldSucceed(Type serviceType)
+    {
+        using var scope = Services.CreateScope();
+
+        var service = scope.ServiceProvider.GetRequiredService(serviceType);
+
+        service.Should().NotBeNull();
     }
 
     [Theory]
@@ -68,16 +92,16 @@ public sealed class McpManagementTests : IAsyncLifetime
     [InlineData(UserRole.Admin)]
     public async Task RegisterProviderActiveManagerShouldPersistOwnedProvider(UserRole role)
     {
-        await SeedIdentityAsync(role);
+        await SeedIdentityAsync(role).ConfigureAwait(true);
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<McpDbContext>();
-        var transaction = await new McpTransactionParticipant(context).BeginTransactionAsync(TestContext.Current.CancellationToken);
+        var transaction = await new McpTransactionParticipant(context).BeginTransactionAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         await using var lifetime = transaction.ConfigureAwait(true);
 
-        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(NewRegistration(), TestContext.Current.CancellationToken);
-        await transaction.CommitAsync(TestContext.Current.CancellationToken);
+        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(NewRegistration(), TestContext.Current.CancellationToken).ConfigureAwait(true);
+        await transaction.CommitAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         using var verification = Services.CreateScope();
-        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Providers.SingleAsync(TestContext.Current.CancellationToken);
+        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Providers.SingleAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         stored.Should().BeEquivalentTo(new
         {
@@ -94,10 +118,10 @@ public sealed class McpManagementTests : IAsyncLifetime
     [InlineData(UserRole.Viewer)]
     public async Task RegisterProviderNonManagerShouldReturnUnauthorized(UserRole role)
     {
-        await SeedIdentityAsync(role);
+        await SeedIdentityAsync(role).ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
-        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(NewRegistration(), TestContext.Current.CancellationToken);
+        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(NewRegistration(), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("IDENTITY_TENANT_MANAGEMENT_FORBIDDEN");
     }
@@ -108,7 +132,7 @@ public sealed class McpManagementTests : IAsyncLifetime
         _tenantContext.IsAuthenticated = false;
         using var scope = Services.CreateScope();
 
-        await scope.ServiceProvider.GetRequiredService<ISender>().Send(NewRegistration(), TestContext.Current.CancellationToken);
+        await scope.ServiceProvider.GetRequiredService<ISender>().Send(NewRegistration(), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         scope.ServiceProvider.GetRequiredService<McpDbContext>().ChangeTracker.Entries().Should().BeEmpty();
     }
@@ -116,10 +140,10 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task ManagementInactiveUserShouldReturnUnauthorized()
     {
-        await SeedIdentityAsync(UserRole.Owner, UserStatus.Inactive);
+        await SeedIdentityAsync(UserRole.Owner, UserStatus.Inactive).ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
-        var result = await scope.ServiceProvider.GetRequiredService<ITenantManagementAuthorization>().AuthorizeAsync(TestContext.Current.CancellationToken);
+        var result = await scope.ServiceProvider.GetRequiredService<ITenantManagementAuthorization>().AuthorizeAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("IDENTITY_TENANT_MANAGEMENT_FORBIDDEN");
     }
@@ -130,13 +154,13 @@ public sealed class McpManagementTests : IAsyncLifetime
         using (var scope = Services.CreateScope())
         {
             var identity = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-            var membership = await identity.TenantUsers.SingleAsync(TestContext.Current.CancellationToken);
+            var membership = await identity.TenantUsers.SingleAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
             membership.Delete(_tenantContext.UserId);
-            await identity.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await identity.SaveChangesAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
         using var verification = Services.CreateScope();
 
-        var result = await verification.ServiceProvider.GetRequiredService<ITenantManagementAuthorization>().AuthorizeAsync(TestContext.Current.CancellationToken);
+        var result = await verification.ServiceProvider.GetRequiredService<ITenantManagementAuthorization>().AuthorizeAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("IDENTITY_TENANT_MANAGEMENT_FORBIDDEN");
     }
@@ -149,14 +173,14 @@ public sealed class McpManagementTests : IAsyncLifetime
         using (var scope = Services.CreateScope())
         {
             var identity = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-            var tenant = await identity.Tenants.SingleAsync(TestContext.Current.CancellationToken);
+            var tenant = await identity.Tenants.SingleAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
             tenant.ChangeStatus(status, _tenantContext.UserId);
-            await identity.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await identity.SaveChangesAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
         using var verification = Services.CreateScope();
 
         var result = await verification.ServiceProvider.GetRequiredService<ITenantManagementAuthorization>()
-            .AuthorizeAsync(TestContext.Current.CancellationToken);
+            .AuthorizeAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("IDENTITY_TENANT_MANAGEMENT_FORBIDDEN");
     }
@@ -166,23 +190,23 @@ public sealed class McpManagementTests : IAsyncLifetime
     {
         using var scope = Services.CreateScope();
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        await cancellation.CancelAsync().ConfigureAwait(true);
         var authorization = scope.ServiceProvider.GetRequiredService<ITenantManagementAuthorization>();
 
         var action = () => authorization.AuthorizeAsync(cancellation.Token);
 
-        await action.Should().ThrowAsync<OperationCanceledException>();
+        await action.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
     }
 
     [Fact]
     public async Task AddServerOtherTenantShouldReturnNotFound()
     {
-        var providerId = await RegisterAsync();
-        await SeedIdentityAsync(UserRole.Owner);
+        var providerId = await RegisterAsync().ConfigureAwait(true);
+        await SeedIdentityAsync(UserRole.Owner).ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new AddMcpServerCommand(providerId, new Uri("https://provider.example.test/mcp"), "provider"), TestContext.Current.CancellationToken);
+            new AddMcpServerCommand(providerId, new Uri("https://provider.example.test/mcp"), "provider"), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("MCP_PROVIDER_NOT_FOUND");
     }
@@ -190,14 +214,14 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task AddServerValidCommandShouldPersistServerAndCreator()
     {
-        var providerId = await RegisterAsync();
+        var providerId = await RegisterAsync().ConfigureAwait(true);
         using var scope = Services.CreateScope();
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new AddMcpServerCommand(providerId, new Uri("https://provider.example.test/mcp"), "provider"), TestContext.Current.CancellationToken);
-        await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken);
+            new AddMcpServerCommand(providerId, new Uri("https://provider.example.test/mcp"), "provider"), TestContext.Current.CancellationToken).ConfigureAwait(true);
+        await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         using var verification = Services.CreateScope();
 
-        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Servers.SingleAsync(TestContext.Current.CancellationToken);
+        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Servers.SingleAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         stored.Should().BeEquivalentTo(new
         {
@@ -211,17 +235,17 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task RemoveServerValidCommandShouldPersistSoftDelete()
     {
-        var providerId = await RegisterAsync();
+        var providerId = await RegisterAsync().ConfigureAwait(true);
         using (var scope = Services.CreateScope())
         {
             var sender = scope.ServiceProvider.GetRequiredService<ISender>();
-            var added = await sender.Send(new AddMcpServerCommand(providerId, new Uri("https://provider.example.test/mcp"), "provider"), TestContext.Current.CancellationToken);
-            await sender.Send(new RemoveMcpServerCommand(providerId, added.Value), TestContext.Current.CancellationToken);
-            await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken);
+            var added = await sender.Send(new AddMcpServerCommand(providerId, new Uri("https://provider.example.test/mcp"), "provider"), TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await sender.Send(new RemoveMcpServerCommand(providerId, added.Value), TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
         using var verification = Services.CreateScope();
 
-        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Servers.IgnoreQueryFilters().SingleAsync(TestContext.Current.CancellationToken);
+        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Servers.IgnoreQueryFilters().SingleAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         stored.Should().BeEquivalentTo(new { IsDeleted = true, UpdatedBy = (Guid?)_tenantContext.UserId });
     }
@@ -229,11 +253,11 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task RemoveServerUnknownServerShouldReturnNotFound()
     {
-        var providerId = await RegisterAsync();
+        var providerId = await RegisterAsync().ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new RemoveMcpServerCommand(providerId, Guid.NewGuid()), TestContext.Current.CancellationToken);
+            new RemoveMcpServerCommand(providerId, Guid.NewGuid()), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("MCP_SERVER_NOT_FOUND");
     }
@@ -241,16 +265,16 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task ChangeProviderStatusValidCommandShouldPersistStatus()
     {
-        var providerId = await RegisterAsync();
+        var providerId = await RegisterAsync().ConfigureAwait(true);
         using (var scope = Services.CreateScope())
         {
             await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-                new ChangeMcpProviderStatusCommand(providerId, McpProviderStatus.Testing), TestContext.Current.CancellationToken);
-            await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken);
+                new ChangeMcpProviderStatusCommand(providerId, McpProviderStatus.Testing), TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
         using var verification = Services.CreateScope();
 
-        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Providers.SingleAsync(TestContext.Current.CancellationToken);
+        var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Providers.SingleAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         stored.Status.Should().Be(McpProviderStatus.Testing);
     }
@@ -261,7 +285,7 @@ public sealed class McpManagementTests : IAsyncLifetime
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new RegisterMcpProviderCommand("", ["ceramics"], ["ES-VC"]), TestContext.Current.CancellationToken);
+            new RegisterMcpProviderCommand("", ["ceramics"], ["ES-VC"]), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("MCP_PROVIDER_NAME_INVALID");
     }
@@ -317,11 +341,11 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task ListProvidersNormalizedFiltersShouldReturnOwnedProvider()
     {
-        var providerId = await RegisterAsync();
+        var providerId = await RegisterAsync().ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new ListMcpProvidersQuery(" es-vc ", " ceramics ", McpProviderStatus.Active), TestContext.Current.CancellationToken);
+            new ListMcpProvidersQuery(" es-vc ", " ceramics ", McpProviderStatus.Active), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Value!.Items.Should().ContainSingle().Which.Id.Should().Be(providerId);
     }
@@ -335,7 +359,7 @@ public sealed class McpManagementTests : IAsyncLifetime
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new ListMcpProvidersQuery(Offset: offset, PageSize: pageSize), TestContext.Current.CancellationToken);
+            new ListMcpProvidersQuery(Offset: offset, PageSize: pageSize), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("MCP_PROVIDER_FILTER_INVALID");
     }
@@ -343,12 +367,12 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task ListProvidersFirstPageShouldReportMoreResults()
     {
-        await RegisterAsync();
-        await RegisterAsync();
+        await RegisterAsync().ConfigureAwait(true);
+        await RegisterAsync().ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new ListMcpProvidersQuery(PageSize: 1), TestContext.Current.CancellationToken);
+            new ListMcpProvidersQuery(PageSize: 1), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Value.Should().BeEquivalentTo(new { Offset = 0, PageSize = 1, HasMore = true });
     }
@@ -356,12 +380,12 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task ListProvidersOffsetShouldReturnNextPage()
     {
-        await RegisterAsync();
-        await RegisterAsync();
+        await RegisterAsync().ConfigureAwait(true);
+        await RegisterAsync().ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new ListMcpProvidersQuery(Offset: 1, PageSize: 1), TestContext.Current.CancellationToken);
+            new ListMcpProvidersQuery(Offset: 1, PageSize: 1), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Value!.Items.Should().ContainSingle();
     }
@@ -369,12 +393,12 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task ListProvidersOtherTenantShouldReturnEmptyPage()
     {
-        await RegisterAsync();
-        await SeedIdentityAsync(UserRole.Owner);
+        await RegisterAsync().ConfigureAwait(true);
+        await SeedIdentityAsync(UserRole.Owner).ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new ListMcpProvidersQuery(), TestContext.Current.CancellationToken);
+            new ListMcpProvidersQuery(), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Value!.Items.Should().BeEmpty();
     }
@@ -382,12 +406,12 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task GetProviderOtherTenantShouldReturnNotFound()
     {
-        var providerId = await RegisterAsync();
-        await SeedIdentityAsync(UserRole.Owner);
+        var providerId = await RegisterAsync().ConfigureAwait(true);
+        await SeedIdentityAsync(UserRole.Owner).ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
         var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(
-            new GetMcpProviderQuery(providerId), TestContext.Current.CancellationToken);
+            new GetMcpProviderQuery(providerId), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("MCP_PROVIDER_NOT_FOUND");
     }
@@ -395,20 +419,20 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task GetProviderValidQueryShouldProjectCatalogAndLiveServers()
     {
-        var providerId = await RegisterAsync();
+        var providerId = await RegisterAsync().ConfigureAwait(true);
         var endpoint = new Uri("https://provider.example.test/mcp");
         using (var scope = Services.CreateScope())
         {
             var sender = scope.ServiceProvider.GetRequiredService<ISender>();
-            await sender.Send(new AddMcpServerCommand(providerId, endpoint, "secret-reference"), TestContext.Current.CancellationToken);
-            var deleted = await sender.Send(new AddMcpServerCommand(providerId, new Uri("https://deleted.example.test/mcp"), "deleted-secret"), TestContext.Current.CancellationToken);
-            await sender.Send(new RemoveMcpServerCommand(providerId, deleted.Value), TestContext.Current.CancellationToken);
-            await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken);
+            await sender.Send(new AddMcpServerCommand(providerId, endpoint, "secret-reference"), TestContext.Current.CancellationToken).ConfigureAwait(true);
+            var deleted = await sender.Send(new AddMcpServerCommand(providerId, new Uri("https://deleted.example.test/mcp"), "deleted-secret"), TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await sender.Send(new RemoveMcpServerCommand(providerId, deleted.Value), TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await scope.ServiceProvider.GetRequiredService<McpDbContext>().SaveChangesAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
         using var verification = Services.CreateScope();
 
         var result = await verification.ServiceProvider.GetRequiredService<ISender>().Send(
-            new GetMcpProviderQuery(providerId), TestContext.Current.CancellationToken);
+            new GetMcpProviderQuery(providerId), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Value.Should().BeEquivalentTo(new
         {
@@ -423,10 +447,10 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task GetProviderProjectionShouldNotTrackEntities()
     {
-        var providerId = await RegisterAsync();
+        var providerId = await RegisterAsync().ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
-        await scope.ServiceProvider.GetRequiredService<ISender>().Send(new GetMcpProviderQuery(providerId), TestContext.Current.CancellationToken);
+        await scope.ServiceProvider.GetRequiredService<ISender>().Send(new GetMcpProviderQuery(providerId), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         scope.ServiceProvider.GetRequiredService<McpDbContext>().ChangeTracker.Entries().Should().BeEmpty();
     }
@@ -434,10 +458,10 @@ public sealed class McpManagementTests : IAsyncLifetime
     [Fact]
     public async Task ListProvidersViewerShouldReturnUnauthorized()
     {
-        await SeedIdentityAsync(UserRole.Viewer);
+        await SeedIdentityAsync(UserRole.Viewer).ConfigureAwait(true);
         using var scope = Services.CreateScope();
 
-        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(new ListMcpProvidersQuery(), TestContext.Current.CancellationToken);
+        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(new ListMcpProvidersQuery(), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("IDENTITY_TENANT_MANAGEMENT_FORBIDDEN");
     }
@@ -447,7 +471,7 @@ public sealed class McpManagementTests : IAsyncLifetime
     {
         using var scope = Services.CreateScope();
 
-        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(new GetMcpProviderQuery(Guid.Empty), TestContext.Current.CancellationToken);
+        var result = await scope.ServiceProvider.GetRequiredService<ISender>().Send(new GetMcpProviderQuery(Guid.Empty), TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         result.Error!.Code.Should().Be("MCP_PROVIDER_ID_INVALID");
     }

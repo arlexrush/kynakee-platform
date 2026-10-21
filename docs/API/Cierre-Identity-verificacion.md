@@ -16,6 +16,10 @@ El cierre solicitado incluye los 14 endpoints existentes y los nuevos flujos de 
 | 8 | Colección completa y recorrido real ngrok/Gateway/API/BD/correo | Completado en alcance dev manual: colección de 28 solicitudes/18 endpoints; titular confirma recepción de verificación, recuperación e invitación, consumo y sesiones, perfiles/tenant, roles/desactivación, 428, refresh revocado 401, replay de login y conflicto 409, reenvío y aislamiento entre dos tenants. No es una ejecución automática integral ni prueba de producción |
 | 9 | Documentación y evidencia final reconciliadas, sin pendientes bloqueantes | Completado para el alcance funcional backend dev: contratos, guía Postman y gobernanza reconciliados; pendientes externos al alcance declarados debajo. No acredita cierre integral de Identity ni producción |
 
+## Incidencia de CI posterior al cierre local
+
+La captura comunicada por el titular muestra 893 pruebas ejecutadas: 857 superadas y 36 fallidas en la assembly de integración; proceso terminado con código 2 y comprobación de umbral de cobertura no ejecutada. El resumen no identifica las pruebas ni sus excepciones, por lo que no permite atribuir los fallos a Identity ni determinar su causa. La integración completa de GitHub queda pendiente de diagnóstico y nueva ejecución satisfactoria. El 100 % indicado debajo describe los nueve hitos del alcance local documentado, no una CI en verde ni ausencia de regresiones en la solución.
+
 ## Contratos y límites de verificación
 
 **Progreso: 9/9 hitos (100 % del cierre funcional backend dev delimitado).** Evidencia automatizada y confirmaciones manuales del titular separadas en este documento, la guía Postman y la gobernanza. Este porcentaje no incluye frontend, operación productiva, renovación OAuth tras expiración, ensayo de restauración, transición legacy de claves, purga periódica operativa ni infraestructura de integración aplazada. No se afirma cobertura manual exhaustiva de cada caso negativo o carrera.
