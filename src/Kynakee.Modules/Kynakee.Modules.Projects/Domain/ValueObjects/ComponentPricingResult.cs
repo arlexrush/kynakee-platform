@@ -130,5 +130,5 @@ namespace Kynakee.Modules.Projects.Domain.ValueObjects
                 : value.Trim();
     }
 
-    
+
 }

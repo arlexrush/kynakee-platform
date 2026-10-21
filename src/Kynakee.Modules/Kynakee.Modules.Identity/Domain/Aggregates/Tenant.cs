@@ -5,6 +5,13 @@ using Kynakee.Modules.SharedKernel.Domain;
 
 namespace Kynakee.Modules.Identity.Domain.Aggregates;
 
+/// <summary>
+/// Agregado que representa una organización (tenant) con identidad, configuración, marca, plan y estado; encapsula la
+/// validación y las operaciones de creación y modificación del tenant y publica eventos de dominio relevantes.
+/// </summary>
+/// <remarks>La instancia se crea mediante el método estático Create que devuelve Result<Tenant> y realiza
+/// validaciones de negocio. Las mutaciones (perfil, branding, settings y estado) validan la coherencia (por ejemplo,
+/// bloqueo cuando el tenant está cancelado) y registran actualizaciones mediante eventos de dominio.</remarks>
 public sealed class Tenant : AggregateRoot<Guid>
 {
     private Tenant()
@@ -35,24 +42,64 @@ public sealed class Tenant : AggregateRoot<Guid>
         Status = TenantStatus.Active;
     }
 
+    /// <summary>
+    /// Nombre del tenant.
+    /// </summary>
     public string Name { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Slug del tenant.
+    /// </summary>
     public TenantSlug Slug { get; private set; } = default!;
 
+    /// <summary>
+    /// Tipo del tenant.
+    /// </summary>
     public TenantType Type { get; private set; }
 
+    /// <summary>
+    /// Identificador fiscal del tenant.
+    /// </summary>
     public TaxId? TaxId { get; private set; }
 
+    /// <summary>
+    /// Dirección fiscal del tenant.
+    /// </summary>
     public Address? FiscalAddress { get; private set; }
 
+    /// <summary>
+    /// Identificador del plan del tenant.
+    /// </summary>
     public string PlanId { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Estado del tenant.
+    /// </summary>
     public TenantStatus Status { get; private set; }
 
+    /// <summary>
+    /// Información de marca de la empresa.
+    /// </summary>
     public CompanyBranding Branding { get; private set; } = CompanyBranding.Create().Value!;
 
+    /// <summary>
+    /// Configuración de la empresa.
+    /// </summary>
     public CompanySettings Settings { get; private set; } = CompanySettings.Default;
 
+    /// <summary>
+    /// Crea una nueva instancia de Tenant con los valores especificados.
+    /// </summary>
+    /// <param name="name">Nombre del tenant.</param>
+    /// <param name="slug">Slug del tenant.</param>
+    /// <param name="type">Tipo del tenant.</param>
+    /// <param name="taxId">Identificador fiscal del tenant.</param>
+    /// <param name="fiscalAddress">Dirección fiscal del tenant.</param>
+    /// <param name="planId">Identificador del plan del tenant.</param>
+    /// <param name="branding">Información de marca de la empresa.</param>
+    /// <param name="settings">Configuración de la empresa.</param>
+    /// <param name="createdBy">Identificador del usuario que crea el tenant.</param>
+    /// <returns>Resultado que contiene la instancia de Tenant creada o un error de validación.</returns>
     public static Result<Tenant> Create(
         string? name,
         TenantSlug? slug,
@@ -112,6 +159,14 @@ public sealed class Tenant : AggregateRoot<Guid>
         return ResultFactory.Success(tenant);
     }
 
+    /// <summary>
+    /// Actualiza la configuración de la empresa del tenant cuando su estado no es Cancelled..
+    /// </summary>
+    /// <remarks>Lanza ArgumentNullException si settings es nulo. Asigna la propiedad Settings y registra la
+    /// actualización mediante RegisterUpdate(updatedBy).</remarks>
+    /// <param name="settings">Configuración de la empresa a aplicar. No puede ser nulo.</param>
+    /// <param name="updatedBy">Identificador opcional del usuario que realiza la actualización; nulo si no se especifica.</param>
+    /// <returns>Result que indica éxito o fallo; devuelve fallo si el tenant está en estado Cancelled y no se permiten cambios.</returns>
     public Result UpdateSettings(CompanySettings settings, Guid? updatedBy = null)
     {
         ArgumentNullException.ThrowIfNull(settings);

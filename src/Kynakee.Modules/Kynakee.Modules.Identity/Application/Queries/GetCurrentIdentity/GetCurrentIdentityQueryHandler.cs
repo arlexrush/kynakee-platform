@@ -1,4 +1,5 @@
 using Kynakee.Modules.Identity.Application.Abstractions;
+using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Contracts;
 using MediatR;
@@ -39,6 +40,13 @@ public sealed class GetCurrentIdentityQueryHandler
         {
             return ResultFactory.Failure<IdentitySessionProfile>(ApplicationError.NotFound(
                 "IDENTITY_PROFILE_NOT_FOUND", "The identity profile was not found."));
+        }
+
+        if (user.Id != request.UserId || user.TenantId != request.TenantId ||
+            tenant.Id != request.TenantId || user.Status != UserStatus.Active || tenant.Status != TenantStatus.Active)
+        {
+            return ResultFactory.Failure<IdentitySessionProfile>(ApplicationError.Unauthorized(
+                "IDENTITY_PROFILE_FORBIDDEN", "The current identity cannot access this profile."));
         }
 
         return ResultFactory.Success(new IdentitySessionProfile(user, tenant));

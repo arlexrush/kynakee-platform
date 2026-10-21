@@ -28,10 +28,13 @@
     <File Path="docs/ADR/kynakee-adrs-part2.md" />
   </Folder>
   <Folder Name="/docs/Api/">
+    <File Path="docs/API/Flujo-registro-tenant-propietario.md" />
     <File Path="docs/API/KynakeeApiContracts.docx" />
     <File Path="docs/API/KynakeeApiContracts.md" />
   </Folder>
+  <Folder Name="/docs/Api/Postman/" />
   <Folder Name="/docs/Deployment/">
+    <File Path="docs/Deployment/Correo-OAuth-personal.md" />
     <File Path="docs/Deployment/US-005-Hetzner-Runbook.md" />
   </Folder>
   <Folder Name="/docs/Domain/">
@@ -92,5 +95,8 @@
     <Project Path="tests/Kynakee.IntegrationTests/Kynakee.IntegrationTests.csproj" Id="f0d70c56-5668-44a4-9ebe-607379aa4111" />
     <Project Path="tests/Kynakee.UnitTests/Kynakee.UnitTests/Kynakee.UnitTests.csproj" Id="48ababc3-5ef2-4c6e-b99a-c6609d82abce" />
   </Folder>
-  <Folder Name="/tools/" />
+  <Folder Name="/tools/">
+    <Project Path="tools/Kynakee.MailAuthorization/Kynakee.MailAuthorization.csproj" />
+    <Project Path="tools/Kynakee.StorageVerification/Kynakee.StorageVerification.csproj" />
+  </Folder>
 </Solution>

@@ -13,7 +13,7 @@ using System.Text.Json.Serialization;
 namespace Kynakee.Modules.Projects.Infrastructure.Persistence.Configurations
 {
     public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
-    {        
+    {
         public void Configure(
             EntityTypeBuilder<Project> builder)
         {
@@ -181,7 +181,7 @@ namespace Kynakee.Modules.Projects.Infrastructure.Persistence.Configurations
 
             ConfigureTokenConsumption(builder);
 
-                        
+
         }
 
         private static void ConfigureClient(

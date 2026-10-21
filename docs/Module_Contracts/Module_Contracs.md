@@ -630,10 +630,32 @@ Use MassTransit integration events via the Outbox Pattern. Never publish directl
 
 All integration events inherit from `Kynakee.Modules.SharedKernel.Integration.IntegrationEvent`
 and implement `IIntegrationEvent`. The current base type is an abstract class, not a record.
-Events are published through the MassTransit Outbox and all consumers must be idempotent.
+Events are intended to be published through the MassTransit Outbox and every consumer must
+be idempotent because delivery is at least once. This is a contract requirement, not evidence
+that Outbox transport or durable consumer deduplication is implemented in every module.
 The public shape of the Shared Kernel integration-event contract is covered by
 `Kynakee.ContractTests.SharedKernel.IntegrationEventContractTests`; transport, Outbox and
 consumer idempotency remain integration concerns.
+
+### Consumer idempotency requirements
+
+Use the [cross-module guarantee assessment guide](../Gobernanza/Garantias-transversales-por-modulo.md) when implementing or reviewing module consumers; record event identity, consumer identity, atomic effects, tests and current status there and in repository governance.
+
+- Deduplicate by a stable event identity and consumer/handler identity. A retry of the same
+  event by the same consumer must not repeat externally visible effects; distinct consumers
+  must each be able to process that event once.
+- The idempotency claim and local business effects must commit atomically in the consumer's
+  transaction. For effects outside that transaction, use an operation-specific idempotency
+  mechanism or durable handoff; a `check processed → apply effects → mark processed` sequence
+  is unsafe because concurrent deliveries or a crash can repeat effects.
+- Treat a duplicate already committed by that consumer as acknowledged without reapplying
+  effects. Handle transient failures so the message can be retried; do not mark it processed
+  before effects are durable.
+- Retain deduplication records for a documented period that covers the broker's redelivery
+  and replay horizon. The database-design 30-day cleanup is a target, not a verified global
+  retention policy.
+- Do not publish directly to RabbitMQ. Outbox, transport, durable idempotency storage and
+  end-to-end consumer tests remain pending where not explicitly verified in module governance.
 
 ```csharp
 // Base class (Kynakee.Modules.SharedKernel.Integration)
@@ -675,17 +697,9 @@ public record CreditDepletedIntegrationEvent : IntegrationEvent
     public decimal RemainingCredits { get; init; }
 }
 
-// Idempotency pattern for all consumers:
-public class ProjectCreatedConsumer : IConsumer<ProjectCreatedIntegrationEvent>
-{
-    public async Task Consume(ConsumeContext<ProjectCreatedIntegrationEvent> context)
-    {
-        var key = $"ProjectCreated:{context.Message.Id}";
-        if (await _idempotencyService.IsProcessedAsync(key)) return;
-        // ... process event ...
-        await _idempotencyService.MarkProcessedAsync(key, GetType().Name);
-    }
-}
+// Consumer deduplication must claim the event and apply transactional effects atomically.
+// The concrete persistence/transaction API is intentionally not specified until the
+// shared Outbox and idempotency infrastructure is implemented.
 ```
 
 ---

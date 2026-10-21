@@ -122,6 +122,143 @@ public class UserTests
         result.IsFailure.Should().BeTrue();
     }
 
+    [Fact]
+    public void PrepareRegistrationInactiveUserWithPasswordRemainsPending()
+    {
+        var user = CreateRegistrationUser();
+
+        user.PrepareRegistration();
+
+        user.Status.Should().Be(UserStatus.PendingVerification);
+    }
+
+    [Fact]
+    public void PrepareRegistrationNewOwnerDoesNotRaiseInvitationEvent()
+    {
+        var user = CreateRegistrationUser();
+
+        user.PrepareRegistration();
+
+        user.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PrepareRegistrationWithoutPasswordIsRejected()
+    {
+        var user = User.Create(Guid.NewGuid(), "Ada", "Lovelace", Email.Create("ada@example.com").Value,
+            null, null, UserStatus.Inactive).Value!;
+
+        var result = user.PrepareRegistration();
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ConfirmRegistrationPendingOwnerBecomesActive()
+    {
+        var user = CreateRegistrationUser();
+        user.PrepareRegistration();
+
+        user.ConfirmRegistration();
+
+        user.Status.Should().Be(UserStatus.Active);
+    }
+
+    [Fact]
+    public void ConfirmRegistrationPendingOwnerRaisesRegisteredEvent()
+    {
+        var user = CreateRegistrationUser();
+        user.PrepareRegistration();
+
+        user.ConfirmRegistration();
+
+        user.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<UserRegisteredDomainEvent>();
+    }
+
+    [Fact]
+    public void ConfirmRegistrationSecondConfirmationIsRejected()
+    {
+        var user = CreateRegistrationUser();
+        user.PrepareRegistration();
+        user.ConfirmRegistration();
+
+        var result = user.ConfirmRegistration();
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ConfirmRegistrationDisabledOwnerIsRejected()
+    {
+        var user = CreateRegistrationUser();
+        user.PrepareRegistration();
+        user.Deactivate();
+
+        var result = user.ConfirmRegistration();
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ConfirmRegistrationInviteeWithoutPasswordIsRejected()
+    {
+        var user = CreateInvitedUser();
+
+        var result = user.ConfirmRegistration();
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RecoverPasswordActiveUserReplacesPasswordHash()
+    {
+        var user = CreateActiveUser();
+
+        user.RecoverPassword("replacement-hash");
+
+        user.PasswordHash.Should().Be("replacement-hash");
+    }
+
+    [Fact]
+    public void RecoverPasswordDisabledUserIsRejected()
+    {
+        var user = CreateActiveUser();
+        user.Deactivate();
+
+        var result = user.RecoverPassword("replacement-hash");
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RecoverPasswordPendingOwnerIsRejected()
+    {
+        var user = CreateRegistrationUser();
+        user.PrepareRegistration();
+
+        var result = user.RecoverPassword("replacement-hash");
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RecoverPasswordEmptyHashIsRejected()
+    {
+        var user = CreateActiveUser();
+
+        var result = user.RecoverPassword(string.Empty);
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    private static User CreateRegistrationUser()
+    {
+        var user = User.Create(Guid.NewGuid(), "Ada", "Lovelace", Email.Create("ada@example.com").Value,
+            null, null, UserStatus.Inactive).Value!;
+        user.SetPasswordHash("hashed-password");
+        return user;
+    }
+
     private static User CreateActiveUser() => User.Create(
         Guid.NewGuid(),
         "Ada",

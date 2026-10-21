@@ -27,12 +27,11 @@ public sealed class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRol
             return Forbidden();
         }
 
-        var actorMembership = await _repository.GetTenantUserAsync(
-                request.TenantId,
-                _tenantContext.UserId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (actorMembership is null || actorMembership.Role != UserRole.Owner)
+        await _repository.AcquireTenantOwnerLockAsync(request.TenantId, cancellationToken).ConfigureAwait(false);
+
+        if (!await IdentityAccess.HasActiveMembershipAsync(
+                _repository, request.TenantId, _tenantContext.UserId, cancellationToken, UserRole.Owner)
+                .ConfigureAwait(false))
         {
             return Forbidden();
         }
@@ -43,6 +42,11 @@ public sealed class ChangeUserRoleCommandHandler : IRequestHandler<ChangeUserRol
         {
             return ResultFactory.Failure(ApplicationError.NotFound(
                 "IDENTITY_TENANT_USER_NOT_FOUND", "The tenant user was not found."));
+        }
+        if (target.Version != request.ExpectedVersion)
+        {
+            return ResultFactory.Failure(ApplicationError.Conflict(
+                "IDENTITY_PRECONDITION_FAILED", "The tenant membership has changed. Fetch the latest version before retrying."));
         }
 
         if (target.Role == UserRole.Owner && request.Role != UserRole.Owner &&

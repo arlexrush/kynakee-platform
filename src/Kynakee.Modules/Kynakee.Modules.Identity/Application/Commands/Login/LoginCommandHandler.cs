@@ -1,10 +1,10 @@
 using Kynakee.Modules.Identity.Application.Abstractions;
-using Kynakee.Modules.Identity.Application.Commands;
 using Kynakee.Modules.Identity.Application.Contracts;
 using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Application;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
+
+using MediatR;
 
 namespace Kynakee.Modules.Identity.Application.Commands.Login;
 
@@ -14,21 +14,25 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<I
     private readonly UserManager<Domain.Aggregates.User> _userManager;
     private readonly IIdentityTokenService _tokenService;
     private readonly TimeProvider _timeProvider;
+    private readonly IAccountActionRepository _actions;
 
     public LoginCommandHandler(
         IIdentityRepository repository,
         UserManager<Domain.Aggregates.User> userManager,
         IIdentityTokenService tokenService,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IAccountActionRepository actions)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(userManager);
         ArgumentNullException.ThrowIfNull(tokenService);
         ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentNullException.ThrowIfNull(actions);
         _repository = repository;
         _userManager = userManager;
         _tokenService = tokenService;
         _timeProvider = timeProvider;
+        _actions = actions;
     }
 
     public async Task<Result<IdentitySessionResponse>> Handle(
@@ -42,6 +46,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<I
             return ResultFactory.Failure<IdentitySessionResponse>(email.Error!);
         }
 
+        await _actions.LockEmailAsync(email.Value!.Value, cancellationToken).ConfigureAwait(false);
         var user = await _repository.FindUserByEmailAcrossTenantsAsync(
                 email.Value!.Value,
                 cancellationToken)

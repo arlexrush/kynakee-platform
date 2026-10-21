@@ -13,26 +13,22 @@ public sealed class InviteUserCommandHandler : IRequestHandler<InviteUserCommand
 {
     private readonly IIdentityRepository _repository;
     private readonly IIdentityTokenService _tokenService;
-    private readonly IInvitationEmailSender _emailSender;
-    private readonly IPostCommitActionDispatcher _postCommitDispatcher;
+    private readonly IInvitationEmailJobStore _emailQueue;
     private readonly TimeProvider _timeProvider;
 
     public InviteUserCommandHandler(
         IIdentityRepository repository,
         IIdentityTokenService tokenService,
-        IInvitationEmailSender emailSender,
-        IPostCommitActionDispatcher postCommitDispatcher,
+        IInvitationEmailJobStore emailQueue,
         TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(tokenService);
-        ArgumentNullException.ThrowIfNull(emailSender);
-        ArgumentNullException.ThrowIfNull(postCommitDispatcher);
+        ArgumentNullException.ThrowIfNull(emailQueue);
         ArgumentNullException.ThrowIfNull(timeProvider);
         _repository = repository;
         _tokenService = tokenService;
-        _emailSender = emailSender;
-        _postCommitDispatcher = postCommitDispatcher;
+        _emailQueue = emailQueue;
         _timeProvider = timeProvider;
     }
 
@@ -122,11 +118,11 @@ public sealed class InviteUserCommandHandler : IRequestHandler<InviteUserCommand
         _repository.AddUser(user);
         _repository.AddTenantUser(membershipResult.Value!);
         _repository.AddInvitation(invitationResult.Value!);
-        _postCommitDispatcher.Enqueue(token => _emailSender.SendInvitationAsync(
+        _emailQueue.Enqueue(request.TenantId, invitationResult.Value!.Id, request.InviterUserId,
             user.Email.Value,
             inviterTenant.Name,
             rawToken,
-            token));
+            invitationResult.Value.ExpiresAt);
 
         return ResultFactory.Success(new InvitationCreatedResponse(
             invitationResult.Value!.Id,

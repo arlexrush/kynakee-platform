@@ -1,11 +1,10 @@
 ﻿using Kynakee.Modules.Projects.Domain.Aggregates;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace Kynakee.Modules.Projects.Infrastructure.Persistence
 {
-    public class ProjectsTransactionParticipant: IModuleTransactionParticipant
+    public class ProjectsTransactionParticipant : IModuleTransactionParticipant
     {
         private readonly ProjectsDbContext _dbContext;
 

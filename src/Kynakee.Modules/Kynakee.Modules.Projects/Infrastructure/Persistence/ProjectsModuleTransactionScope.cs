@@ -1,4 +1,5 @@
 ﻿using Kynakee.Modules.SharedKernel.Contracts;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Kynakee.Modules.Projects.Infrastructure.Persistence;

@@ -1,5 +1,5 @@
-using Kynakee.Modules.Bots.Domain.Enums;
 using Kynakee.Modules.Bots.Domain.Entities;
+using Kynakee.Modules.Bots.Domain.Enums;
 using Kynakee.Modules.Bots.Domain.Resources;
 using Kynakee.Modules.Bots.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Application;

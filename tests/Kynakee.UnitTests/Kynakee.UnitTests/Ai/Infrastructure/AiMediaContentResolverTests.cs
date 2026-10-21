@@ -1,10 +1,10 @@
-using System.Text;
 using FluentAssertions;
-using Kynakee.Modules.AI.Contracts;
 using Kynakee.Modules.Ai.Infrastructure.AI;
+using Kynakee.Modules.AI.Contracts;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using System.Text;
 using Xunit;
 
 namespace Kynakee.UnitTests.Ai.Infrastructure;
@@ -22,7 +22,7 @@ public class AiMediaContentResolverTests
                 11)));
         var resolver = new AiMediaContentResolver(source, CreateOptions(1024));
         var media = new MediaFileRef(
-            new Uri("minio://captures/project/photo.jpg"),
+            new Uri("s3://captures/project/photo.jpg"),
             "image/jpeg",
             "kitchen",
             false,
@@ -46,7 +46,7 @@ public class AiMediaContentResolverTests
                 3)));
         var resolver = new AiMediaContentResolver(source, CreateOptions(2));
         var media = new MediaFileRef(
-            new Uri("minio://captures/project/document.pdf"),
+            new Uri("s3://captures/project/document.pdf"),
             "application/pdf",
             null,
             false,

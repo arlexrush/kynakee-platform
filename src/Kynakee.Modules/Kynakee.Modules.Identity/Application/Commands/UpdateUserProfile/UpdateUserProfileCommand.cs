@@ -7,4 +7,5 @@ public sealed record UpdateUserProfileCommand(
     Guid UserId,
     string FirstName,
     string LastName,
-    string? Phone) : ICommand;
+    string? Phone,
+    uint ExpectedVersion) : ICommand;

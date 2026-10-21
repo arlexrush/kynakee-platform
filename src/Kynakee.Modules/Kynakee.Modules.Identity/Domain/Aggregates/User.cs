@@ -7,6 +7,9 @@ namespace Kynakee.Modules.Identity.Domain.Aggregates;
 
 public sealed class User : AggregateRoot<Guid>
 {
+    private static readonly System.Resources.ResourceManager AccountResources = new(
+        "Kynakee.Modules.Identity.Domain.AccountActionResources", typeof(User).Assembly);
+
     private User()
     {
     }
@@ -40,6 +43,8 @@ public sealed class User : AggregateRoot<Guid>
     public PhoneNumber? Phone { get; private set; }
 
     public string? PasswordHash { get; private set; }
+
+    public Guid CredentialVersion { get; private set; } = Guid.NewGuid();
 
     public UserStatus Status { get; private set; }
 
@@ -188,6 +193,38 @@ public sealed class User : AggregateRoot<Guid>
         return ResultFactory.Ok();
     }
 
+    /// <summary>Prepares a newly created owner for mailbox verification without raising an invitation event.</summary>
+    public Result PrepareRegistration()
+    {
+        if (IsDeleted || Status != UserStatus.Inactive || string.IsNullOrWhiteSpace(PasswordHash))
+            return AccountActionUnavailable();
+
+        Status = UserStatus.PendingVerification;
+        RegisterUpdate(Id);
+        return ResultFactory.Ok();
+    }
+
+    /// <summary>Activates only a pending registration whose mailbox credential was consumed by the application transaction.</summary>
+    public Result ConfirmRegistration(Guid? updatedBy = null)
+    {
+        if (IsDeleted || Status != UserStatus.PendingVerification || string.IsNullOrWhiteSpace(PasswordHash))
+            return AccountActionUnavailable();
+        Status = UserStatus.Active;
+        RegisterUpdate(updatedBy);
+        AddDomainEvent(new UserRegisteredDomainEvent(Id, TenantId, Email.Value));
+        return ResultFactory.Ok();
+    }
+
+    /// <summary>Replaces credentials only for an active account; token consumption is coordinated by the application.</summary>
+    public Result RecoverPassword(string? passwordHash)
+    {
+        if (IsDeleted || Status != UserStatus.Active)
+            return AccountActionUnavailable();
+        var changed = SetPasswordHash(passwordHash, Id);
+        if (changed.IsSuccess) CredentialVersion = Guid.NewGuid();
+        return changed;
+    }
+
     public Result Activate(Guid? updatedBy = null)
     {
         if (IsDeleted)
@@ -231,6 +268,10 @@ public sealed class User : AggregateRoot<Guid>
         RegisterUpdate(updatedBy);
         return ResultFactory.Ok();
     }
+
+    private static Result AccountActionUnavailable() => ResultFactory.Failure(ApplicationError.Unauthorized(
+        "IDENTITY_ACCOUNT_TOKEN_UNAVAILABLE", AccountResources.GetString("Unavailable",
+            System.Globalization.CultureInfo.CurrentUICulture) ?? "Unavailable"));
 
     public Result DeleteUser(Guid? deletedBy = null)
     {

@@ -1,4 +1,5 @@
 using Kynakee.Modules.Identity.Domain.Aggregates;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

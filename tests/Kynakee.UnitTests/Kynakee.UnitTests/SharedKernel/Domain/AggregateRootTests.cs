@@ -154,7 +154,7 @@ namespace Kynakee.UnitTests.SharedKernel.Domain
 
         }
     }
-        
+
 
 #pragma warning restore CA1515 // Considere la posibilidad de hacer que los tipos públicos sean internos
 }

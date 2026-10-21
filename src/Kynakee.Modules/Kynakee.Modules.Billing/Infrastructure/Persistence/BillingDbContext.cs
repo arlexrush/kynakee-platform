@@ -1,9 +1,9 @@
-using System.Linq.Expressions;
 using Kynakee.Modules.Billing.Domain.Aggregates;
 using Kynakee.Modules.Billing.Domain.Entities;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Kynakee.Modules.Billing.Infrastructure.Persistence;
 

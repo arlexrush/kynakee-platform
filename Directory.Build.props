@@ -7,4 +7,9 @@
     <AnalysisMode>All</AnalysisMode>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(DOTNET_RUNNING_IN_CONTAINER)' == 'true'">
+    <BaseIntermediateOutputPath>obj/container/</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/container/</BaseOutputPath>
+  </PropertyGroup>
 </Project>

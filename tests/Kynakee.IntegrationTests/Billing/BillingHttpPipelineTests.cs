@@ -1,6 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Security.Claims;
 using FluentAssertions;
 using Kynakee.Api.Application.Abstractions;
 using Kynakee.Api.Application.Behaviors;
@@ -15,9 +12,12 @@ using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Contracts;
 using MediatR;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
-using Testcontainers.PostgreSql;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System.Net;
+using System.Net.Http.Json;
+using System.Security.Claims;
+using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Kynakee.IntegrationTests.Billing;

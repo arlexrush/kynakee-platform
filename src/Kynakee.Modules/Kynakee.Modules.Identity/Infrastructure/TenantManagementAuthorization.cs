@@ -1,11 +1,11 @@
-using System.Globalization;
-using System.Resources;
-using System.Diagnostics.CodeAnalysis;
 using Kynakee.Modules.Identity.Application.Abstractions;
 using Kynakee.Modules.Identity.Contracts;
 using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Contracts;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Resources;
 
 namespace Kynakee.Modules.Identity.Infrastructure;
 

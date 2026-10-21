@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Pending" xml:space="preserve"><value>If this address is eligible, an email will be sent. Check your inbox and spam folder. The account cannot be activated until the email is verified; receipt is not guaranteed.</value></data>
+  <data name="Completed" xml:space="preserve"><value>The account action is complete. Sign in to continue.</value></data>
+  <data name="Unavailable" xml:space="preserve"><value>The account action is unavailable. Request a new email if necessary.</value></data>
+  <data name="PasswordRejected" xml:space="preserve"><value>The password does not satisfy the identity policy.</value></data>
+</root>

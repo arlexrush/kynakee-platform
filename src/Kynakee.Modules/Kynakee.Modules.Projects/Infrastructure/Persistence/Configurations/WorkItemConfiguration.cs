@@ -151,7 +151,7 @@ namespace Kynakee.Modules.Projects.Infrastructure.Persistence.Configurations
                 .HasDatabaseName("idx_work_items_project");
 
             builder.HasIndex(workItem => workItem.CanonicalConceptId)
-                .HasDatabaseName("idx_work_items_concept");                        
+                .HasDatabaseName("idx_work_items_concept");
         }
 
         private static MeasurementUnit ResolveMeasurementUnit(

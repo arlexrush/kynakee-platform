@@ -1,12 +1,12 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Kynakee.Modules.Identity.Application.Contracts;
 using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Domain.Entities;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 namespace Kynakee.Modules.Identity.Infrastructure;
 
@@ -46,6 +46,7 @@ internal sealed class JwtIdentityTokenService : IIdentityTokenService
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString("D")),
             new Claim("tenant_id", tenant.Id.ToString("D")),
+            new Claim("credential_version", user.CredentialVersion.ToString("D")),
             new Claim(ClaimTypes.Email, user.Email.Value),
             new Claim(ClaimTypes.Role, membership.Role.ToString())
         };

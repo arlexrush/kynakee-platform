@@ -1,9 +1,9 @@
-using System.Collections.Concurrent;
 using Kynakee.Modules.Mcp.Contracts;
 using Kynakee.Modules.SharedKernel.Application;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
+using System.Collections.Concurrent;
 
 namespace Kynakee.Modules.Mcp.Infrastructure.Client;
 
