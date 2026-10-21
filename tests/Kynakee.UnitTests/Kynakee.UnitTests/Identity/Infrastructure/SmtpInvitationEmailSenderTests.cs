@@ -1,7 +1,7 @@
-using System.Net.Mail;
 using FluentAssertions;
 using Kynakee.Modules.Identity.Infrastructure.Email;
 using Microsoft.Extensions.Configuration;
+using System.Net.Mail;
 using Xunit;
 
 namespace Kynakee.UnitTests.Identity.Infrastructure;
@@ -28,8 +28,6 @@ public class SmtpInvitationEmailSenderTests
         transport.Message.IsBodyHtml.Should().BeTrue();
         transport.Message.Body.Should().Contain("Builders &lt;North &amp; South&gt;");
         transport.Message.Body.Should().Contain("https://app.example.test/invitations?token=opaque%20token%26value");
-        transport.Username.Should().Be("smtp-user");
-        transport.Password.Should().Be("smtp-password");
         transport.Timeout.Should().Be(TimeSpan.FromSeconds(15));
     }
 
@@ -49,8 +47,10 @@ public class SmtpInvitationEmailSenderTests
         transport.Message.Should().BeNull();
     }
 
-    [Fact]
-    public async Task SendInvitationShouldRequirePasswordWhenSmtpUsernameIsConfigured()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(65536)]
+    public async Task SendInvitationInvalidPortShouldRejectBeforeTransport(int port)
     {
         var transport = new CapturingSmtpInvitationTransport();
         var configuration = new ConfigurationBuilder()
@@ -58,8 +58,7 @@ public class SmtpInvitationEmailSenderTests
             {
                 ["Smtp:Host"] = "smtp.example.test",
                 ["Smtp:From"] = "no-reply@example.test",
-                ["Smtp:Port"] = "587",
-                ["Smtp:Username"] = "smtp-user",
+                ["Smtp:Port"] = port.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["Authentication:InvitationBaseUrl"] = "https://app.example.test/invitations"
             })
             .Build();
@@ -82,8 +81,6 @@ public class SmtpInvitationEmailSenderTests
                 ["Smtp:Host"] = "smtp.example.test",
                 ["Smtp:From"] = "no-reply@example.test",
                 ["Smtp:Port"] = "2525",
-                ["Smtp:Username"] = "smtp-user",
-                ["Smtp:Password"] = "smtp-password",
                 ["Authentication:InvitationBaseUrl"] = invitationBaseUrl
             })
             .Build();
@@ -96,18 +93,12 @@ public class SmtpInvitationEmailSenderTests
 
         public int Port { get; private set; }
 
-        public string? Username { get; private set; }
-
-        public string? Password { get; private set; }
-
         public TimeSpan Timeout { get; private set; }
 
         public Task SendAsync(
             MailMessage message,
             string host,
             int port,
-            string? username,
-            string? password,
             TimeSpan timeout,
             CancellationToken cancellationToken)
         {
@@ -119,8 +110,6 @@ public class SmtpInvitationEmailSenderTests
             };
             Host = host;
             Port = port;
-            Username = username;
-            Password = password;
             Timeout = timeout;
             return Task.CompletedTask;
         }

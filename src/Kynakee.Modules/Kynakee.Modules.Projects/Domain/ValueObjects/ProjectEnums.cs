@@ -26,7 +26,7 @@
         Web = 0,
         Telegram = 1,
         WhatsApp = 2
-    }    
+    }
 
     public enum WorkItemAIStatus
     {
@@ -78,7 +78,7 @@
     }
 
     public enum PricingSource
-    {        
+    {
         McpProvider = 1,
         CachedPrice = 2,
         AlternativeSource = 3,

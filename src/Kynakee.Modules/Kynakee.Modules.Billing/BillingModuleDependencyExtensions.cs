@@ -1,6 +1,4 @@
-﻿using FluentValidation;
-using Kynakee.Modules.Billing.Application.Abstractions;
-using Kynakee.Modules.Billing.Application.Commands.ReserveCredits;
+﻿using Kynakee.Modules.Billing.Application.Abstractions;
 using Kynakee.Modules.Billing.Application.Commands.InitializeCreditAccount;
 using Kynakee.Modules.Billing.Application.Options;
 using Kynakee.Modules.Billing.Application.Services;
@@ -8,7 +6,7 @@ using Kynakee.Modules.Billing.Contracts;
 using Kynakee.Modules.Billing.Infrastructure.Persistence;
 using Kynakee.Modules.Billing.Infrastructure.Repositories;
 using Kynakee.Modules.SharedKernel.Contracts;
-using MediatR;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,8 +40,7 @@ public static class BillingModuleDependencyExtensions
         services.AddScoped(provider =>
             provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<BillingOptions>>().Value);
         services.TryAddSingleton<TimeProvider>(TimeProvider.System);
-        services.AddMediatR(options =>
-            options.RegisterServicesFromAssembly(typeof(InitializeCreditAccountCommandHandler).Assembly));
+        services.AddMediatR(options => options.RegisterServicesFromAssembly(typeof(InitializeCreditAccountCommandHandler).Assembly));
         services.AddValidatorsFromAssembly(typeof(InitializeCreditAccountCommandHandler).Assembly);
 
         return services;

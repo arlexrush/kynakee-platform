@@ -1,0 +1,540 @@
+{
+	"info": {
+		"name": "Identity dev — bloques manuales",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"description": "18 endpoints. Ejecutar por bloques manuales; crea datos y correo reales. Tokens solo locales temporales. No sincronizar ni exportar respuestas. Invitación/desactivación solo contra invitado de prueba autorizado. No declara ejecución E2E."
+	},
+	"variable": [{
+			"key": "baseUrl",
+			"value": ""
+		},
+		{
+			"key": "email",
+			"value": ""
+		},
+		{
+			"key": "password",
+			"value": ""
+		},
+		{
+			"key": "newPassword",
+			"value": ""
+		},
+		{
+			"key": "verificationToken",
+			"value": ""
+		},
+		{
+			"key": "resetToken",
+			"value": ""
+		},
+		{
+			"key": "invitationToken",
+			"value": ""
+		},
+		{
+			"key": "inviteeEmail",
+			"value": ""
+		},
+		{
+			"key": "inviteePassword",
+			"value": ""
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [{
+			"key": "token",
+			"value": "{{accessToken}}",
+			"type": "string"
+		}]
+	},
+	"event": [{
+		"listen": "prerequest",
+		"script": {
+			"exec": [
+				"if (!/^https:\\/\\/[^/]+$/.test(pm.variables.get('baseUrl') || '')) throw new Error('Configura baseUrl HTTPS local.');",
+				"pm.request.headers.upsert({key:'ngrok-skip-browser-warning',value:'true'});",
+				"const url=pm.request.url.toString(); const body=pm.request.body && pm.request.body.raw || '';",
+				"for(const name of ['email','password']) if(body.includes('{{'+name+'}}') && !pm.variables.get(name)) throw new Error('Configura '+name+' local antes de enviar.');",
+				"if(url.includes('{{inviteeUserId}}') && !pm.variables.get('inviteeUserId')) throw new Error('Falta el identificador del invitado de prueba.');",
+				"for (const name of ['verificationToken','resetToken','invitationToken','inviteePassword','newPassword']) if(body.includes('{{'+name+'}}') && !pm.variables.get(name)){pm.execution.setNextRequest(null);throw new Error('Falta '+name+' local; no pegar secretos en chat.');}",
+				"if(url.endsWith('/users/invite') && (!pm.variables.get('inviteeEmail') || pm.variables.get('inviteeEmail')===pm.variables.get('email'))) throw new Error('Configura un buzón invitado distinto y autorizado.');",
+				"if(pm.request.headers.has('Idempotency-Key')) {const k='key:'+pm.info.requestName;if(!pm.variables.get(k))pm.variables.set(k,pm.variables.replaceIn('{{$guid}}').replace(/-/g,''));pm.request.headers.upsert({key:'Idempotency-Key',value:pm.variables.get(k)});}"
+			]
+		}
+	}, {
+		"listen": "test",
+		"script": {
+			"exec": [
+				"const n=pm.info.requestName;const expected=Number(n.slice(0,3));pm.test('HTTP esperado '+expected,()=>pm.response.to.have.status(expected));",
+				"if(pm.response.code!==expected){pm.execution.setNextRequest(null);throw new Error('Respuesta inesperada; revisar localmente sin exportar secretos.');}",
+				"if(n.includes('Registro')) pm.test('Sin sesión',()=>{const d=pm.response.json().data;pm.expect(d).not.to.have.property('accessToken');pm.expect(d).not.to.have.property('refreshToken');});",
+				"if(n.includes('Login') || n.includes('Refresh')) {const d=pm.response.json().data;pm.variables.set('accessToken',d.accessToken);pm.variables.set('refreshToken',d.refreshToken);}",
+				"if(n.includes('Aceptar invitación')){const d=pm.response.json().data;pm.variables.set('inviteeAccessToken',d.accessToken);pm.variables.set('inviteeUserId',d.user.id);}",
+				"if(n.includes('Leer usuario'))pm.variables.set('userETag',pm.response.headers.get('ETag'));",
+				"if(n.includes('Leer tenant')){pm.variables.set('tenantETag',pm.response.headers.get('ETag'));pm.variables.set('tenantSlug',pm.response.json().data.slug);}",
+				"if(n.includes('Listar usuarios')){const u=pm.response.json().data.find(x=>x.userId===pm.variables.get('inviteeUserId'));if(u)pm.variables.set('membershipETag',u.membershipETag);}",
+				"if(n.includes('Reset contraseña')){pm.variables.set('previousAccessToken',pm.variables.get('accessToken'));pm.variables.unset('accessToken');pm.variables.unset('refreshToken');}"
+			]
+		}
+	}],
+	"item": [{
+			"name": "01 Alta — detener antes de verificar y leer buzón",
+			"item": [{
+					"name": "200 Salud",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"url": "{{baseUrl}}/health/ready"
+					}
+				},
+				{
+					"name": "202 Registro",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/register",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"firstName\":\"Prueba\",\"lastName\":\"Identity\",\"email\":\"{{email}}\",\"password\":\"{{password}}\",\"phone\":\"+34600000000\",\"tenantName\":\"Prueba Identity local\",\"tenantType\":0,\"taxId\":\"12345678Z\",\"taxCountry\":\"ES\",\"planId\":\"free\",\"channel\":\"web\"}"
+						}
+					}
+				},
+				{
+					"name": "401 Acceso pendiente",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/login",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\",\"channel\":\"web\"}"
+						}
+					}
+				},
+				{
+					"name": "202 Reenvío",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/email/resend",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\":\"{{email}}\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Verificar",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/email/verify",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"token\":\"{{verificationToken}}\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Login inicial",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/login",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\",\"channel\":\"web\"}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "02 Perfiles",
+			"item": [{
+					"name": "200 Leer usuario",
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/users/me"
+					}
+				},
+				{
+					"name": "428 Perfil sin precondición",
+					"request": {
+						"method": "PUT",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/users/me",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"firstName\":\"Prueba\",\"lastName\":\"Actualizada\",\"phone\":\"+34600000000\"}"
+						}
+					}
+				},
+				{
+					"name": "204 Actualizar perfil",
+					"request": {
+						"method": "PUT",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "If-Match",
+							"value": "{{userETag}}"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/users/me",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"firstName\":\"Prueba\",\"lastName\":\"Actualizada\",\"phone\":\"+34600000000\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Leer tenant",
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/tenants/me"
+					}
+				},
+				{
+					"name": "204 Actualizar tenant",
+					"request": {
+						"method": "PUT",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "If-Match",
+							"value": "{{tenantETag}}"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/tenants/me",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"name\":\"Prueba Identity local\",\"slug\":\"{{tenantSlug}}\",\"taxId\":\"12345678Z\",\"taxCountry\":\"ES\",\"fiscalCountry\":null,\"region\":null,\"province\":null,\"municipality\":null,\"postalCode\":null,\"street\":null,\"planId\":\"free\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Leer tenant actualizado",
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/tenants/me"
+					}
+				},
+				{
+					"name": "204 Ajustes tenant",
+					"request": {
+						"method": "PUT",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "If-Match",
+							"value": "{{tenantETag}}"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/tenants/me/settings",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"administration\":10,\"profit\":5,\"quality\":1,\"safetyHealth\":1,\"environment\":1,\"contingency\":2}"
+						}
+					}
+				},
+				{
+					"name": "200 Listar usuarios inicial",
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/users"
+					}
+				}
+			]
+		},
+		{
+			"name": "03 Recuperación — leer buzón antes de reset",
+			"item": [{
+					"name": "202 Solicitar recuperación",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/password/forgot",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\":\"{{email}}\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Reset contraseña",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/password/reset",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"token\":\"{{resetToken}}\",\"password\":\"{{newPassword}}\"}"
+						}
+					}
+				},
+				{
+					"name": "401 JWT anterior",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{
+								"key": "token",
+								"value": "{{previousAccessToken}}",
+								"type": "string"
+							}]
+						},
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/users/me"
+					}
+				},
+				{
+					"name": "200 Login recuperado",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/login",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\":\"{{email}}\",\"password\":\"{{newPassword}}\",\"channel\":\"web\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Refresh",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/refresh",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"refreshToken\":\"{{refreshToken}}\"}"
+						}
+					}
+				},
+				{
+					"name": "204 Logout",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/logout",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"refreshToken\":\"{{refreshToken}}\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Login administración",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/login",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\":\"{{email}}\",\"password\":\"{{newPassword}}\",\"channel\":\"web\"}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "04 Invitación autorizada — leer buzón antes de aceptar",
+			"item": [{
+					"name": "201 Invitar",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/users/invite",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"firstName\":\"Invitado\",\"lastName\":\"Prueba\",\"email\":\"{{inviteeEmail}}\",\"phone\":null,\"role\":4}"
+						}
+					}
+				},
+				{
+					"name": "200 Aceptar invitación",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "Idempotency-Key",
+							"value": "generated"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/auth/invitations/accept",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"invitationToken\":\"{{invitationToken}}\",\"password\":\"{{inviteePassword}}\"}"
+						}
+					}
+				},
+				{
+					"name": "200 Listar usuarios invitados",
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/users"
+					}
+				},
+				{
+					"name": "204 Cambiar rol invitado",
+					"request": {
+						"method": "PUT",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}, {
+							"key": "If-Match",
+							"value": "{{membershipETag}}"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/users/{{inviteeUserId}}/role",
+						"body": {
+							"mode": "raw",
+							"raw": "{\"role\":3}"
+						}
+					}
+				},
+				{
+					"name": "200 Listar usuarios actualizados",
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/users"
+					}
+				},
+				{
+					"name": "204 Desactivar invitado",
+					"request": {
+						"method": "DELETE",
+						"header": [{
+							"key": "If-Match",
+							"value": "{{membershipETag}}"
+						}],
+						"url": "{{baseUrl}}/api/v1/identity/users/{{inviteeUserId}}"
+					}
+				},
+				{
+					"name": "401 Invitado desactivado",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{
+								"key": "token",
+								"value": "{{inviteeAccessToken}}",
+								"type": "string"
+							}]
+						},
+						"method": "GET",
+						"url": "{{baseUrl}}/api/v1/identity/users/me"
+					}
+				}
+			]
+		}
+	]
+}

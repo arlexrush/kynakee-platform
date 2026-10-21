@@ -1,8 +1,8 @@
 using FluentAssertions;
 using Kynakee.Modules.Mcp;
 using Kynakee.Modules.Mcp.Domain.Aggregates;
-using Kynakee.Modules.Mcp.Domain.Enums;
 using Kynakee.Modules.Mcp.Domain.Entities;
+using Kynakee.Modules.Mcp.Domain.Enums;
 using Kynakee.Modules.Mcp.Domain.Repositories;
 using Kynakee.Modules.Mcp.Domain.ValueObjects;
 using Kynakee.Modules.Mcp.Infrastructure.Persistence;
@@ -12,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;

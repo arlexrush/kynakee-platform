@@ -57,11 +57,11 @@ namespace Kynakee.Modules.Projects.Domain.ValueObjects
             decimal credits)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(tokens, nameof(tokens));
-                       
+
 
             ArgumentOutOfRangeException.ThrowIfNegative(credits, nameof(credits));
 
-            
+
             var values = new Dictionary<ProjectPhase, int>(
                 ByPhaseStorage ?? new Dictionary<ProjectPhase, int>());
 

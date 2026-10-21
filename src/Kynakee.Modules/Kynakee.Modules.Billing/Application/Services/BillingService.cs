@@ -10,8 +10,9 @@ using Kynakee.Modules.Billing.Contracts;
 using Kynakee.Modules.Billing.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Contracts;
-using MediatR;
 using CreditReservationContract = Kynakee.Modules.Billing.Contracts.CreditReservation;
+
+using MediatR;
 
 namespace Kynakee.Modules.Billing.Application.Services;
 

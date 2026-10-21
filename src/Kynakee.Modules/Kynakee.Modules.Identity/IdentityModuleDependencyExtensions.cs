@@ -1,26 +1,23 @@
 ﻿using Kynakee.Modules.Identity.Application.Abstractions;
 using Kynakee.Modules.Identity.Application.Commands.RegisterTenantOwner;
+using Kynakee.Modules.Identity.Application.Contracts;
+using Kynakee.Modules.Identity.Contracts;
 using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Infrastructure;
+using Kynakee.Modules.Identity.Infrastructure.Email;
 using Kynakee.Modules.Identity.Infrastructure.Persistence;
 using Kynakee.Modules.SharedKernel.Contracts;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Kynakee.Modules.Identity.Application.Contracts;
-using Kynakee.Modules.Identity.Infrastructure.Email;
-using Kynakee.Modules.Identity.Contracts;
 
 namespace Kynakee.Modules.Identity
 {
     public static class IdentityModuleDependencyExtensions
     {
-        public static IServiceCollection AddIdentityModule(
-            this IServiceCollection services,
-            IConfiguration configuration)
+        public static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<IdentityDbContext>(options =>
             {
@@ -28,10 +25,11 @@ namespace Kynakee.Modules.Identity
                     configuration.GetConnectionString("Postgres"));
             });
 
-            services.AddScoped<IModuleTransactionParticipant,
-                IdentityTransactionParticipant>();
-
+            services.AddScoped<IModuleTransactionParticipant, IdentityTransactionParticipant>();
             services.AddScoped<IIdentityRepository, IdentityRepository>();
+            services.AddScoped<IAccountActionRepository, AccountActionRepository>();
+            services.AddScoped<IIdentityAccessTokenValidator, IdentityAccessTokenValidator>();
+            services.AddScoped<Application.Commands.AccountActionIssuer>();
             services.AddScoped<ITenantManagementAuthorization, TenantManagementAuthorization>();
             services.AddIdentityCore<User>(options =>
                 {
@@ -47,14 +45,14 @@ namespace Kynakee.Modules.Identity
                 .AddUserStore<IdentityUserStore>();
             services.TryAddSingleton<TimeProvider>(TimeProvider.System);
             services.TryAddSingleton<JwtIdentityTokenService>();
-            services.TryAddSingleton<IIdentityTokenService>(provider =>
-                provider.GetRequiredService<JwtIdentityTokenService>());
+            services.TryAddSingleton<IIdentityTokenService>(provider => provider.GetRequiredService<JwtIdentityTokenService>());
             services.TryAddSingleton<ISmtpInvitationTransport, SmtpInvitationTransport>();
             services.TryAddScoped<IInvitationEmailSender, SmtpInvitationEmailSender>();
-
+            services.TryAddScoped<IAccountEmailSender, SmtpAccountEmailSender>();
+            services.AddMediatR(options => options.RegisterServicesFromAssembly(typeof(RegisterTenantOwnerCommandHandler).Assembly));
             services.AddValidatorsFromAssemblyContaining<RegisterTenantOwnerCommandValidator>();
 
             return services;
-        }   
+        }
     }
 }

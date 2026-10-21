@@ -1,6 +1,5 @@
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace Kynakee.Modules.Bots.Infrastructure.Persistence;
 

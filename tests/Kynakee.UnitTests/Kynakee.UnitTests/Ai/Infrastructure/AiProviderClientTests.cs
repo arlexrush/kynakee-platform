@@ -1,8 +1,8 @@
-using System.Net;
-using System.Text;
 using FluentAssertions;
 using Kynakee.Modules.Ai.Domain.Enums;
 using Kynakee.Modules.Ai.Infrastructure.AI;
+using System.Net;
+using System.Text;
 using Xunit;
 
 namespace Kynakee.UnitTests.Ai.Infrastructure;

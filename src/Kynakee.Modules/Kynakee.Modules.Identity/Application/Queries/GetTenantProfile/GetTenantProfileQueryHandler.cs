@@ -32,12 +32,9 @@ public sealed class GetTenantProfileQueryHandler : IRequestHandler<GetTenantProf
                 "IDENTITY_TENANT_PROFILE_FORBIDDEN", "The current identity cannot access this tenant."));
         }
 
-        var membership = await _repository.GetTenantUserAsync(
-                request.TenantId,
-                request.RequestingUserId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (membership is null || membership.Role is not (UserRole.Owner or UserRole.Admin))
+        if (!await IdentityAccess.HasActiveMembershipAsync(
+                _repository, request.TenantId, request.RequestingUserId, cancellationToken, UserRole.Owner, UserRole.Admin)
+                .ConfigureAwait(false))
         {
             return ResultFactory.Failure<IdentityTenantProfile>(ApplicationError.Unauthorized(
                 "IDENTITY_TENANT_PROFILE_FORBIDDEN", "Only tenant owners and administrators can view tenant details."));

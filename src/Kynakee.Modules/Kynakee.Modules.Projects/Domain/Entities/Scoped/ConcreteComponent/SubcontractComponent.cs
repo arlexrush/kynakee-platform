@@ -15,7 +15,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,            
+            MeasurementUnit unit,
             string? fallbackIndicator,
             string contractConditions,
             decimal quantityPerApuUnit,
@@ -26,7 +26,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 apuAssignmentId,
                 sourceComponentId,
                 description,
-                unit,                
+                unit,
                 fallbackIndicator,
                 createdBy)
         {
@@ -34,9 +34,9 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             QuantityPerApuUnit = quantityPerApuUnit;
         }
 
-        public override APUComponentType Type => APUComponentType.Subcontract;        
+        public override APUComponentType Type => APUComponentType.Subcontract;
 
-        public string ContractConditions { get; private set; }=string.Empty;
+        public string ContractConditions { get; private set; } = string.Empty;
 
         public decimal QuantityPerApuUnit { get; private set; }
 
@@ -45,7 +45,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,            
+            MeasurementUnit unit,
             string contractConditions,
             decimal quantityPerApuUnit,
             string? fallbackIndicator = null,
@@ -68,7 +68,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                         "PROJ_APU_SUBCONTRACT_DESCRIPTION_INVALID",
                         "The subcontract description is invalid."));
             }
-            
+
             if (!IsValidUnit(unit))
             {
                 return ResultFactory.Failure<SubcontractComponent>(
@@ -94,7 +94,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 apuAssignmentId,
                 sourceComponentId,
                 description.Trim(),
-                unit,                
+                unit,
                 fallbackIndicator,
                 contractConditions,
                 quantityPerApuUnit,

@@ -1,8 +1,9 @@
-using System.Linq.Expressions;
 using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Domain.Entities;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
+using System.Linq.Expressions;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace Kynakee.Modules.Identity.Infrastructure.Persistence;
@@ -31,6 +32,11 @@ public sealed class IdentityDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<UserInvitation> UserInvitations => Set<UserInvitation>();
+    public DbSet<AccountActionToken> AccountActionTokens => Set<AccountActionToken>();
+    public DbSet<AccountEmailJob> AccountEmailJobs => Set<AccountEmailJob>();
+    public DbSet<InvitationEmailJob> InvitationEmailJobs => Set<InvitationEmailJob>();
+
+    public DbSet<IdentityIdempotencyRecord> IdempotencyRecords => Set<IdentityIdempotencyRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,15 +45,8 @@ public sealed class IdentityDbContext : DbContext
         modelBuilder.HasDefaultSchema("schema_identity");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
         ApplyGlobalFilters(modelBuilder);
-        ApplyTenantRootFilter(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
-    }
-
-    private static void ApplyTenantRootFilter(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Tenant>()
-            .HasQueryFilter(tenant => !tenant.IsDeleted && tenant.TenantId == tenant.Id);
     }
 
     private void ApplyGlobalFilters(ModelBuilder modelBuilder)

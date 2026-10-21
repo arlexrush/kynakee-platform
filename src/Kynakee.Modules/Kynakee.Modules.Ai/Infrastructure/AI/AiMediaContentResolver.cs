@@ -1,11 +1,11 @@
-using System.Net.Http.Headers;
-using Kynakee.Modules.AI.Contracts;
-using Kynakee.Modules.Ai.Domain.Services;
 using Kynakee.Modules.Ai.Domain.Resources;
+using Kynakee.Modules.Ai.Domain.Services;
+using Kynakee.Modules.AI.Contracts;
 using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Contracts;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
 
 namespace Kynakee.Modules.Ai.Infrastructure.AI;
 

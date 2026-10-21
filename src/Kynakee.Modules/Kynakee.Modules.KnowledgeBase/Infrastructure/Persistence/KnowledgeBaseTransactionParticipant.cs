@@ -1,10 +1,9 @@
 ﻿using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace Kynakee.Modules.KnowledgeBase.Infrastructure.Persistence
 {
-    public class KnowledgeBaseTransactionParticipant: IModuleTransactionParticipant
+    public class KnowledgeBaseTransactionParticipant : IModuleTransactionParticipant
     {
         private readonly KnowledgeBaseDbContext _dbContext;
         public KnowledgeBaseTransactionParticipant(KnowledgeBaseDbContext dbContext)

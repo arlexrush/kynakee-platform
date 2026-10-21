@@ -1,12 +1,12 @@
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Headers;
 using Kynakee.Modules.Ai.Domain.Enums;
 using Kynakee.Modules.Ai.Domain.Resources;
 using Kynakee.Modules.Ai.Domain.Services;
 using Kynakee.Modules.SharedKernel.Application;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace Kynakee.Modules.Ai.Infrastructure.AI;
 

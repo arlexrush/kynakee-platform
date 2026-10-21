@@ -21,7 +21,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,           
+            MeasurementUnit unit,
             string? fallbackIndicator,
             Guid? createdBy)
             : base(id, tenantId, createdBy)
@@ -29,7 +29,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
             APUAssignmentId = apuAssignmentId;
             SourceComponentId = sourceComponentId;
             Description = description;
-            Unit = unit;            
+            Unit = unit;
             FallbackIndicator = fallbackIndicator;
         }
 
@@ -172,7 +172,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped
         /// <returns>true si el rendimiento es mayor que cero; de lo contrario, false.</returns>
         protected static bool IsValidYield(
             decimal yield) =>
-            yield > 0;  
+            yield > 0;
 
         /// <summary>
         /// Normaliza una cadena: devuelve null si es null o contiene solo espacios en blanco; en caso contrario

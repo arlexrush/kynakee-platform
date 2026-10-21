@@ -20,7 +20,8 @@ public class RefreshSessionCommandHandlerTests
         var handler = new RefreshSessionCommandHandler(
             repository,
             tokenService,
-            TimeProvider.System);
+            TimeProvider.System,
+            Substitute.For<IAccountActionRepository>());
 
         var result = await handler.Handle(new RefreshSessionCommand("opaque-token"), CancellationToken.None);
 

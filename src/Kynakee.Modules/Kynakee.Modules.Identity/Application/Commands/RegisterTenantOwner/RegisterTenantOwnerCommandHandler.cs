@@ -1,5 +1,4 @@
 using Kynakee.Modules.Identity.Application.Abstractions;
-using Kynakee.Modules.Identity.Application.Commands;
 using Kynakee.Modules.Identity.Application.Contracts;
 using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Domain.Entities;
@@ -10,31 +9,40 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Kynakee.Modules.Identity.Application.Commands.RegisterTenantOwner;
 
-public sealed class RegisterTenantOwnerCommandHandler
-    : IRequestHandler<RegisterTenantOwnerCommand, Result<IdentitySessionResponse>>
+internal sealed class RegisterTenantOwnerCommandHandler : IRequestHandler<RegisterTenantOwnerCommand, Result<AccountActionAcknowledgement>>
 {
     private readonly IIdentityRepository _repository;
     private readonly UserManager<User> _userManager;
-    private readonly IIdentityTokenService _tokenService;
-    private readonly TimeProvider _timeProvider;
+    private readonly IAccountActionRepository _actions;
+    private readonly AccountActionIssuer _issuer;
 
     public RegisterTenantOwnerCommandHandler(
         IIdentityRepository repository,
         UserManager<User> userManager,
-        IIdentityTokenService tokenService,
-        TimeProvider timeProvider)
+        IAccountActionRepository actions,
+        AccountActionIssuer issuer)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(userManager);
-        ArgumentNullException.ThrowIfNull(tokenService);
-        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentNullException.ThrowIfNull(actions);
+        ArgumentNullException.ThrowIfNull(issuer);
         _repository = repository;
         _userManager = userManager;
-        _tokenService = tokenService;
-        _timeProvider = timeProvider;
+        _actions = actions;
+        _issuer = issuer;
     }
 
-    public async Task<Result<IdentitySessionResponse>> Handle(
+    /// <summary>
+    /// Registra el propietario pendiente: valida entradas, crea tenant y membresía y encola la verificación sin sesión.
+    /// </summary>
+    /// <remarks>Puede fallar por validaciones de los Value Objects, errores en la creación de entidades o por
+    /// fallos del UserManager; en dichos casos devuelve Result.Failure con el Error correspondiente.</remarks>
+    /// <param name="request">Comando que contiene los datos necesarios para crear el tenant y el usuario propietario (nombre, contacto,
+    /// identificadores fiscales, credenciales y configuración).</param>
+    /// <param name="cancellationToken">Token para cancelar la operación asincrónica.</param>
+    /// <returns>Result que contiene un acuse genérico sin tokens en caso de éxito, o un Error detallado en
+    /// caso de fallo.</returns>
+    public async Task<Result<AccountActionAcknowledgement>> Handle(
         RegisterTenantOwnerCommand request,
         CancellationToken cancellationToken)
     {
@@ -43,31 +51,54 @@ public sealed class RegisterTenantOwnerCommandHandler
         var email = Email.Create(request.Email);
         var phone = PhoneNumber.Create(request.Phone);
         var taxId = TaxId.Create(request.TaxId, request.TaxCountry);
+        Address? fiscalAddress = null;
+        if (HasFiscalAddress(request))
+        {
+            var fiscalAddressResult = Address.Create(
+                request.FiscalCountry,
+                request.FiscalRegion,
+                request.FiscalProvince,
+                request.FiscalMunicipality,
+                request.FiscalPostalCode,
+                request.FiscalStreet);
+            if (fiscalAddressResult.IsFailure)
+            {
+                return ResultFactory.Failure<AccountActionAcknowledgement>(fiscalAddressResult.Error!);
+            }
+
+            fiscalAddress = fiscalAddressResult.Value;
+        }
+
         var branding = CompanyBranding.Create(companyName: request.TenantName);
-        var slug = await CreateAvailableTenantSlugAsync(request.TenantName, cancellationToken)
-            .ConfigureAwait(false);
+        var slug = await CreateAvailableTenantSlugAsync(request.TenantName, cancellationToken).ConfigureAwait(false); // Genera un slug único basado en el nombre del tenant, verificando que no exista ya en la base de datos.
 
         if (email.IsFailure || phone.IsFailure || taxId.IsFailure || branding.IsFailure || slug.IsFailure)
         {
             var error = email.Error ?? phone.Error ?? taxId.Error ?? branding.Error ?? slug.Error!;
-            return ResultFactory.Failure<IdentitySessionResponse>(error);
+            return ResultFactory.Failure<AccountActionAcknowledgement>(error);
         }
+
+        await _actions.LockEmailAsync(email.Value!.Value, cancellationToken).ConfigureAwait(false);
+        if (await _repository.FindUserByEmailAcrossTenantsAsync(email.Value.Value, cancellationToken).ConfigureAwait(false) is not null)
+            return ResultFactory.Success(AccountActionAcknowledgement.Pending);
 
         var tenantResult = Tenant.Create(
             request.TenantName,
             slug.Value,
             request.TenantType,
             taxId.Value,
-            null,
+            fiscalAddress,
             request.PlanId,
             branding.Value,
             CompanySettings.Default);
+
         if (tenantResult.IsFailure)
         {
-            return ResultFactory.Failure<IdentitySessionResponse>(tenantResult.Error!);
+            return ResultFactory.Failure<AccountActionAcknowledgement>(tenantResult.Error!);
         }
 
-        var tenant = tenantResult.Value!;
+        var tenant = tenantResult.Value!; // Crea la entidad Tenant con los datos proporcionados, incluyendo el slug único, tipo de tenant, identificador fiscal, dirección fiscal opcional, plan de suscripción, branding y configuración predeterminada.
+        
         var userResult = User.Create(
             tenant.Id,
             request.FirstName,
@@ -75,43 +106,45 @@ public sealed class RegisterTenantOwnerCommandHandler
             email.Value,
             phone.Value,
             null,
-            UserStatus.Inactive);
+            UserStatus.Inactive); // Crea la entidad User con los datos proporcionados, asociada al tenant recién creado, con estado Inactive hasta que se active la cuenta.
+
+
         if (userResult.IsFailure)
         {
-            return ResultFactory.Failure<IdentitySessionResponse>(userResult.Error!);
+            return ResultFactory.Failure<AccountActionAcknowledgement>(userResult.Error!);
         }
 
-        var user = userResult.Value!;
-        _repository.AddTenant(tenant);
-        var identityResult = await _userManager.CreateAsync(user, request.Password)
-            .ConfigureAwait(false);
+        var user = userResult.Value!; // Obtiene la entidad User creada anteriormente.
+
+        _repository.AddTenant(tenant); // Persiste el tenant en el repositorio de identidad (base de datos).
+
+        var identityResult = await _userManager.CreateAsync(user, request.Password).ConfigureAwait(false); // Crea el usuario en el sistema de identidad (Identity) con la contraseña proporcionada.
+
         if (!identityResult.Succeeded)
         {
-            return MapIdentityFailure(identityResult);
+            return MapIdentityFailure(identityResult); // Mapea los errores de Identity a un Result de fallo con un error detallado.
         }
 
-        var activation = user.Activate();
+        var activation = user.PrepareRegistration();
         if (activation.IsFailure)
         {
-            return ResultFactory.Failure<IdentitySessionResponse>(activation.Error!);
+            return ResultFactory.Failure<AccountActionAcknowledgement>(activation.Error!);
         }
 
-        var membershipResult = TenantUser.Create(user, UserRole.Owner);
+        var membershipResult = TenantUser.Create(user, UserRole.Owner); // Crea la entidad TenantUser que representa la membresía del usuario como propietario del tenant.
+        
         if (membershipResult.IsFailure)
         {
-            return ResultFactory.Failure<IdentitySessionResponse>(membershipResult.Error!);
+            return ResultFactory.Failure<AccountActionAcknowledgement>(membershipResult.Error!);
         }
 
         var membership = membershipResult.Value!;
         _repository.AddTenantUser(membership);
 
-        return IdentitySessionFactory.Create(
-            user,
-            tenant,
-            membership,
-            _repository,
-            _tokenService,
-            _timeProvider.GetUtcNow());
+        var issued = await _issuer.IssueAsync(user, AccountActionPurpose.VerifyEmail, cancellationToken).ConfigureAwait(false);
+        return issued.IsFailure
+            ? ResultFactory.Failure<AccountActionAcknowledgement>(issued.Error!)
+            : ResultFactory.Success(AccountActionAcknowledgement.Pending);
     }
 
     private async Task<Result<TenantSlug>> CreateAvailableTenantSlugAsync(
@@ -172,15 +205,23 @@ public sealed class RegisterTenantOwnerCommandHandler
         return slug.ToString().Trim('-');
     }
 
-    private static Result<IdentitySessionResponse> MapIdentityFailure(IdentityResult identityResult)
+    private static bool HasFiscalAddress(RegisterTenantOwnerCommand request) =>
+        !string.IsNullOrWhiteSpace(request.FiscalCountry) ||
+        !string.IsNullOrWhiteSpace(request.FiscalRegion) ||
+        !string.IsNullOrWhiteSpace(request.FiscalProvince) ||
+        !string.IsNullOrWhiteSpace(request.FiscalMunicipality) ||
+        !string.IsNullOrWhiteSpace(request.FiscalPostalCode) ||
+        !string.IsNullOrWhiteSpace(request.FiscalStreet);
+
+    private static Result<AccountActionAcknowledgement> MapIdentityFailure(IdentityResult identityResult)
     {
         if (identityResult.Errors.Any(error => error.Code is "DuplicateEmail" or "DuplicateUserName"))
         {
-            return ResultFactory.Failure<IdentitySessionResponse>(
-                ApplicationError.Conflict("IDENTITY_EMAIL_ALREADY_REGISTERED", "An account with this email already exists."));
+            return ResultFactory.Failure<AccountActionAcknowledgement>(
+                ApplicationError.Validation("IDENTITY_USER_CREATION_FAILED", AccountActionMessages.Get("Unavailable")));
         }
 
-        return ResultFactory.Failure<IdentitySessionResponse>(
+        return ResultFactory.Failure<AccountActionAcknowledgement>(
             ApplicationError.Validation("IDENTITY_USER_CREATION_FAILED", "Identity rejected the user registration."));
     }
 }

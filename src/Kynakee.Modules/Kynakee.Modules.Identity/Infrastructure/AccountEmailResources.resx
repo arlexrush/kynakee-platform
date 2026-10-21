@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="ConfigurationInvalid" xml:space="preserve"><value>Account email configuration is unavailable. Review encryption keys, SMTP and the HTTPS action address.</value></data>
+  <data name="PayloadInvalid" xml:space="preserve"><value>The account email payload is unavailable.</value></data>
+  <data name="TransactionRequired" xml:space="preserve"><value>Account email requires a new tracked action and its Identity transaction.</value></data>
+  <data name="VerifySubject" xml:space="preserve"><value>Verify your Kynakee email address</value></data>
+  <data name="ResetSubject" xml:space="preserve"><value>Reset your Kynakee password</value></data>
+  <data name="Body" xml:space="preserve"><value>Use this single-use token only in the Kynakee account flow you requested: {0}
+Expires at: {1:u}
+Do not share this token. If you did not request this operation, ignore this message. This message does not activate your account or change your password by itself.</value></data>
+</root>

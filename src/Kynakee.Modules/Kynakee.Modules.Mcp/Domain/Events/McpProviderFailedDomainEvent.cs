@@ -1,5 +1,5 @@
-using Kynakee.Modules.SharedKernel.Domain;
 using Kynakee.Modules.Mcp.Domain.ValueObjects;
+using Kynakee.Modules.SharedKernel.Domain;
 
 namespace Kynakee.Modules.Mcp.Domain.Events;
 

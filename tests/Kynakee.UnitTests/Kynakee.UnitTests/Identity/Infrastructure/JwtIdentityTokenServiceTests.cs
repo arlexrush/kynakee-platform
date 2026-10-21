@@ -1,7 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using FluentAssertions;
 using Kynakee.Modules.Identity.Domain.Aggregates;
 using Kynakee.Modules.Identity.Domain.Entities;
@@ -9,6 +5,10 @@ using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.Identity.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Xunit;
 
 namespace Kynakee.UnitTests.Identity.Infrastructure;
@@ -59,6 +59,7 @@ public class JwtIdentityTokenServiceTests
         jwt.Header.Alg.Should().Be(SecurityAlgorithms.HmacSha256);
         principal.FindFirst(ClaimTypes.NameIdentifier)!.Value.Should().Be(user.Id.ToString("D"));
         principal.FindFirst("tenant_id")!.Value.Should().Be(tenant.Id.ToString("D"));
+        principal.FindFirst("credential_version")!.Value.Should().Be(user.CredentialVersion.ToString("D"));
         principal.FindFirst(ClaimTypes.Email)!.Value.Should().Be(user.Email.Value);
         principal.FindFirst(ClaimTypes.Role)!.Value.Should().Be(nameof(UserRole.Owner));
         jwt.ValidTo.Should().Be(now.AddMinutes(15).UtcDateTime);

@@ -37,7 +37,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.OfferProject
 
         public ProjectId ProjectId { get; private set; }
 
-        public int OfferNumber { get; private set; }  
+        public int OfferNumber { get; private set; }
 
         public Money TotalAmount { get; private set; } = default!;
 
@@ -127,7 +127,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.OfferProject
                         "PROJ_OFFER_STATUS_INVALID_FOR_SENDING",
                         "Only a draft offer can be sent."));
             }
-                        
+
             PdfUrl = pdfUrl;
             Status = OfferStatus.Sent;
             SentAt = DateTime.UtcNow;

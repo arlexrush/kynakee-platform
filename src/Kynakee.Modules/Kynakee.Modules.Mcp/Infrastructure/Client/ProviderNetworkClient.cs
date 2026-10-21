@@ -1,20 +1,20 @@
-using System.Globalization;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
-using System.Resources;
-using System.Text.Json;
 using Kynakee.Modules.Mcp.Contracts;
 using Kynakee.Modules.Mcp.Domain.Aggregates;
 using Kynakee.Modules.Mcp.Domain.Entities;
-using Kynakee.Modules.Mcp.Domain.Repositories;
 using Kynakee.Modules.Mcp.Domain.Enums;
+using Kynakee.Modules.Mcp.Domain.Repositories;
 using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Microsoft.Extensions.Configuration;
-using ModelContextProtocol;
 using ModelContextProtocol.Client;
+using ModelContextProtocol;
 using Polly.CircuitBreaker;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Net;
+using System.Resources;
+using System.Text.Json;
 
 namespace Kynakee.Modules.Mcp.Infrastructure.Client;
 

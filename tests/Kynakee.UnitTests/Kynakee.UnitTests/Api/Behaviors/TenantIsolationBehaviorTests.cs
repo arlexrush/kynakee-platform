@@ -1,9 +1,8 @@
-using System.Security.Claims;
 using FluentAssertions;
 using Kynakee.Api.Application.Abstractions;
 using Kynakee.Api.Application.Behaviors;
 using Kynakee.Modules.SharedKernel.Application;
-using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using Xunit;
 
 namespace Kynakee.UnitTests.Api.Behaviors;

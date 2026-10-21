@@ -19,7 +19,6 @@ using Kynakee.Modules.SharedKernel.Contracts;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -80,8 +79,13 @@ public sealed class McpManagementTests : IAsyncLifetime
         using var verification = Services.CreateScope();
         var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Providers.SingleAsync(TestContext.Current.CancellationToken);
 
-        stored.Should().BeEquivalentTo(new { Id = new Kynakee.Modules.Mcp.Domain.ValueObjects.McpProviderId(result.Value),
-            TenantId = _tenantContext.TenantId, CreatedBy = (Guid?)_tenantContext.UserId, Name = "Provider" });
+        stored.Should().BeEquivalentTo(new
+        {
+            Id = new Kynakee.Modules.Mcp.Domain.ValueObjects.McpProviderId(result.Value),
+            TenantId = _tenantContext.TenantId,
+            CreatedBy = (Guid?)_tenantContext.UserId,
+            Name = "Provider"
+        });
     }
 
     [Theory]
@@ -195,8 +199,13 @@ public sealed class McpManagementTests : IAsyncLifetime
 
         var stored = await verification.ServiceProvider.GetRequiredService<McpDbContext>().Servers.SingleAsync(TestContext.Current.CancellationToken);
 
-        stored.Should().BeEquivalentTo(new { Id = new Kynakee.Modules.Mcp.Domain.ValueObjects.McpServerId(result.Value),
-            TenantId = _tenantContext.TenantId, CreatedBy = (Guid?)_tenantContext.UserId, CredentialSecretReference = "provider" });
+        stored.Should().BeEquivalentTo(new
+        {
+            Id = new Kynakee.Modules.Mcp.Domain.ValueObjects.McpServerId(result.Value),
+            TenantId = _tenantContext.TenantId,
+            CreatedBy = (Guid?)_tenantContext.UserId,
+            CredentialSecretReference = "provider"
+        });
     }
 
     [Fact]
@@ -401,9 +410,14 @@ public sealed class McpManagementTests : IAsyncLifetime
         var result = await verification.ServiceProvider.GetRequiredService<ISender>().Send(
             new GetMcpProviderQuery(providerId), TestContext.Current.CancellationToken);
 
-        result.Value.Should().BeEquivalentTo(new { Id = providerId, Name = "Provider",
-            Categories = new List<string> { "CERAMICS" }, GeoRegions = new List<string> { "ES-VC" },
-            Servers = new[] { new { Endpoint = endpoint } } });
+        result.Value.Should().BeEquivalentTo(new
+        {
+            Id = providerId,
+            Name = "Provider",
+            Categories = new List<string> { "CERAMICS" },
+            GeoRegions = new List<string> { "ES-VC" },
+            Servers = new[] { new { Endpoint = endpoint } }
+        });
     }
 
     [Fact]

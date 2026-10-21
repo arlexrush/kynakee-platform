@@ -15,7 +15,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,            
+            MeasurementUnit unit,
             string equipmentCategory,
             decimal equipmentCount,
             decimal hoursPerApuUnit,
@@ -27,7 +27,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 apuAssignmentId,
                 sourceComponentId,
                 description,
-                unit,                
+                unit,
                 fallbackIndicator,
                 createdBy)
         {
@@ -93,7 +93,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                         "PROJ_APU_EQUIPMENT_TECHNICAL_DATA_INVALID",
                         "Equipment count and hours per APU unit must be greater than zero."));
             }
-            
+
 
             return ResultFactory.Success(
                 new EquipmentComponent(
@@ -102,7 +102,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                     apuAssignmentId,
                     sourceComponentId,
                     description.Trim(),
-                    unit!,                    
+                    unit!,
                     equipmentCategory.Trim(),
                     equipmentCount,
                     hoursPerApuUnit,

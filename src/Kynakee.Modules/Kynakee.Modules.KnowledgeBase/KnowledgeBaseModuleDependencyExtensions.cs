@@ -1,12 +1,12 @@
-﻿using Kynakee.Modules.KnowledgeBase.Infrastructure.Persistence;
+﻿using Kynakee.Modules.KnowledgeBase.Application.Abstractions;
 using Kynakee.Modules.KnowledgeBase.Domain.Repositories;
+using Kynakee.Modules.KnowledgeBase.Infrastructure.Persistence;
 using Kynakee.Modules.KnowledgeBase.Infrastructure.Repositories;
-using Kynakee.Modules.KnowledgeBase.Application.Abstractions;
 using Kynakee.Modules.KnowledgeBase.Infrastructure.VectorSearch;
 using Kynakee.Modules.SharedKernel.Contracts;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
 

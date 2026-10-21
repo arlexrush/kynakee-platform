@@ -1,13 +1,13 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
-using System.Text.Json;
-using Kynakee.Modules.AI.Contracts;
-using Kynakee.Modules.Ai.Domain.Enums;
 using Kynakee.Modules.Ai.Domain.Entities;
+using Kynakee.Modules.Ai.Domain.Enums;
 using Kynakee.Modules.Ai.Domain.Resources;
 using Kynakee.Modules.Ai.Domain.Services;
 using Kynakee.Modules.Ai.Infrastructure.Persistence;
+using Kynakee.Modules.AI.Contracts;
 using Kynakee.Modules.SharedKernel.Application;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace Kynakee.Modules.Ai.Infrastructure.AI;
 

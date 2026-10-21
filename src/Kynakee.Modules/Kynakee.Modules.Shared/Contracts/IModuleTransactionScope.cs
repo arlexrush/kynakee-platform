@@ -2,6 +2,8 @@
 {
     public interface IModuleTransactionScope : IAsyncDisposable
     {
+        IIdempotencyTransactionScope? Idempotency => null;
+
         Task CommitAsync(CancellationToken cancellationToken);
 
         Task RollbackAsync(CancellationToken cancellationToken);

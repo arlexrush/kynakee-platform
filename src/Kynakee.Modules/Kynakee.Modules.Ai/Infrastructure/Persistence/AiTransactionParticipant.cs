@@ -1,7 +1,5 @@
 ﻿using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Kynakee.Modules.Ai.Infrastructure.Persistence
 {

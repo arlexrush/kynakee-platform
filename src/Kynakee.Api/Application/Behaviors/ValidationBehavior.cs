@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using FluentValidation.Results;
 using Kynakee.Modules.SharedKernel.Application;
 using MediatR;
 
@@ -27,7 +26,7 @@ namespace Kynakee.Api.Application.Behaviors
                 ArgumentNullException.ThrowIfNull(next);
                 return await next(cancellationToken).ConfigureAwait(false);
             }
-                       
+
 
             var validationResults = await Task.WhenAll(_validators.Select(validator => validator.ValidateAsync(request, cancellationToken))).ConfigureAwait(false);
 
@@ -53,7 +52,7 @@ namespace Kynakee.Api.Application.Behaviors
 
             return ResultResponseFactory.CreateFailure<TResponse>(error);
         }
-        
+
     }
 
     internal static class ResultResponseFactory

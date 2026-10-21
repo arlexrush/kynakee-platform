@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="EndpointInvalid" xml:space="preserve"><value>Object storage endpoint must be a credential-free HTTP(S) origin matching UseSsl, without a path, query or fragment.</value></data>
+  <data name="CredentialsRequired" xml:space="preserve"><value>Object storage access and secret keys must be supplied through external configuration.</value></data>
+  <data name="BucketInvalid" xml:space="preserve"><value>Object storage bucket must be a valid lowercase S3 bucket name.</value></data>
+  <data name="SizeInvalid" xml:space="preserve"><value>Object storage size limit must be between 1 byte and 100 MiB.</value></data>
+  <data name="RegionInvalid" xml:space="preserve"><value>Object storage requires an ASCII alphanumeric signing region with optional hyphens.</value></data>
+  <data name="ConfigurationRequired" xml:space="preserve"><value>Object storage must be enabled and configured before its client is resolved.</value></data>
+  <data name="ObjectSizeInvalid" xml:space="preserve"><value>The S3 object exceeds the configured media size limit, is empty or has an inconsistent length.</value></data>
+  <data name="ObjectMimeInvalid" xml:space="preserve"><value>The S3 object MIME type does not match its capture metadata.</value></data>
+  <data name="UploadStreamInvalid" xml:space="preserve"><value>Upload content must be readable, seekable and positioned at its beginning.</value></data>
+</root>

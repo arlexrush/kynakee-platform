@@ -7,6 +7,14 @@ using MediatR;
 
 namespace Kynakee.Modules.Identity.Application.Queries.GetTenantUsers;
 
+/// <summary>
+/// Maneja la consulta GetTenantUsersQuery y devuelve una lista de TenantUserListItem del tenant solicitado, aplicando
+/// las comprobaciones de autenticación y autorización.
+/// </summary>
+/// <remarks>Valida que el solicitante esté autenticado y que TenantId y UserId coincidan con el contexto del
+/// tenant; sólo permite el acceso a usuarios con rol Owner o Admin. Recupera la membresía y los usuarios mediante
+/// IIdentityRepository y retorna un Result<IReadOnlyList<TenantUserListItem>> con el resultado o un error de
+/// autorización.</remarks>
 public sealed class GetTenantUsersQueryHandler
     : IRequestHandler<GetTenantUsersQuery, Result<IReadOnlyList<TenantUserListItem>>>
 {
@@ -33,12 +41,9 @@ public sealed class GetTenantUsersQueryHandler
                 "IDENTITY_TENANT_USERS_FORBIDDEN", "The current identity cannot access tenant users."));
         }
 
-        var membership = await _repository.GetTenantUserAsync(
-                request.TenantId,
-                request.RequestingUserId,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (membership is null || membership.Role is not (UserRole.Owner or UserRole.Admin))
+        if (!await IdentityAccess.HasActiveMembershipAsync(
+                _repository, request.TenantId, request.RequestingUserId, cancellationToken, UserRole.Owner, UserRole.Admin)
+                .ConfigureAwait(false))
         {
             return ResultFactory.Failure<IReadOnlyList<TenantUserListItem>>(ApplicationError.Unauthorized(
                 "IDENTITY_TENANT_USERS_FORBIDDEN", "Only tenant owners and administrators can view tenant users."));

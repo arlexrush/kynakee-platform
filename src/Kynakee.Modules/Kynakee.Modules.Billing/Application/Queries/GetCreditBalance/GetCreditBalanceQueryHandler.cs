@@ -1,6 +1,7 @@
 using Kynakee.Modules.Billing.Application.Abstractions;
 using Kynakee.Modules.Billing.Contracts;
 using Kynakee.Modules.SharedKernel.Application;
+
 using MediatR;
 
 namespace Kynakee.Modules.Billing.Application.Queries.GetCreditBalance;

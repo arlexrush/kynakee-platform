@@ -1,7 +1,6 @@
 ﻿using Kynakee.Modules.Billing.Domain.Aggregates;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace Kynakee.Modules.Billing.Infrastructure.Persistence;
 

@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
-using Kynakee.Modules.Projects.Domain.Entities.Scoped;
+﻿using Kynakee.Modules.Projects.Domain.Entities.Scoped;
 using Kynakee.Modules.Projects.Domain.ValueObjects;
+using System.Text.Json;
 
 namespace Kynakee.Modules.Projects.Infrastructure.Persistence.Configurations;
 

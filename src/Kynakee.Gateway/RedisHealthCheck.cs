@@ -1,6 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Kynakee.Gateway;
 

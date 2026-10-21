@@ -12,7 +12,7 @@
     <PackageReference Include="MediatR" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Ardalis.Specification" />
-    <PackageReference Include="Minio" />
+    <PackageReference Include="AWSSDK.S3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Kynakee.Modules.Shared\Kynakee.Modules.SharedKernel.csproj" />

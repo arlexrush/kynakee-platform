@@ -79,18 +79,32 @@ services:
       Authentication__Issuer: ${AUTHENTICATION_ISSUER:-Kynakee}
       Authentication__Audience: ${AUTHENTICATION_AUDIENCE:-KynakeeClients}
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Identity__Idempotency__HashKey: ${IDENTITY_IDEMPOTENCY_HASH_KEY:?IDENTITY_IDEMPOTENCY_HASH_KEY must be set}
+      Identity__Idempotency__ActiveOutcomeKeyId: v1
+      Identity__Idempotency__OutcomeKeys__v1: ${IDENTITY_IDEMPOTENCY_OUTCOME_KEY_V1:?IDENTITY_IDEMPOTENCY_OUTCOME_KEY_V1 must be set}
+      Identity__InvitationEmail__ActiveKeyId: v1
+      Identity__InvitationEmail__Keys__v1: ${IDENTITY_INVITATION_EMAIL_KEY_V1:?IDENTITY_INVITATION_EMAIL_KEY_V1 must be set}
+      Authentication__InvitationBaseUrl: ${INVITATION_BASE_URL:?INVITATION_BASE_URL must be set}
+      Smtp__Host: ${SMTP_HOST:-smtp-mail.outlook.com}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__From: ${SMTP_OAUTH_USERNAME:?SMTP_OAUTH_USERNAME must be set}
+      Smtp__OAuth__ClientId: ${SMTP_OAUTH_CLIENT_ID:?SMTP_OAUTH_CLIENT_ID must be set}
+      Smtp__OAuth__TenantId: ${SMTP_OAUTH_TENANT_ID:-consumers}
+      Smtp__OAuth__Username: ${SMTP_OAUTH_USERNAME:?SMTP_OAUTH_USERNAME must be set}
+      Smtp__OAuth__CacheKey: ${SMTP_OAUTH_CACHE_KEY:?SMTP_OAUTH_CACHE_KEY must be set}
+      Smtp__OAuth__CachePath: /var/lib/kynakee/mail-oauth/mail.cache
       ConnectionStrings__Redis: redis:6379
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       Qdrant__Endpoint: http://qdrant:6333
-      MinIO__Enabled: "true"
-      MinIO__Endpoint: ${MINIO_ENDPOINT}
-      MinIO__AccessKey: ${MINIO_ACCESS_KEY}
-      MinIO__SecretKey: ${MINIO_SECRET_KEY}
-      MinIO__Bucket: ${MINIO_BUCKET}
-      MinIO__UseSsl: "${MINIO_USE_SSL}"
-      MinIO__MaxObjectBytes: ${MINIO_MAX_OBJECT_BYTES}
+      ObjectStorage__Enabled: "false"
     expose:
       - "8080"
+    volumes:
+      - type: bind
+        source: ${SMTP_OAUTH_CACHE_DIRECTORY:?SMTP_OAUTH_CACHE_DIRECTORY must be set}
+        target: /var/lib/kynakee/mail-oauth
+        bind:
+          create_host_path: false
     depends_on:
       postgres:
         condition: service_healthy

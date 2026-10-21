@@ -3,8 +3,8 @@ using Kynakee.Modules.SharedKernel.Application;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Kynakee.Modules.SharedKernel.Domain;
 using Kynakee.Modules.SharedKernel.Integration;
-using Xunit;
 using System.Reflection;
+using Xunit;
 
 namespace Kynakee.ArchitectureTests
 {

@@ -15,7 +15,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
             APUAssignmentId apuAssignmentId,
             Guid sourceComponentId,
             string description,
-            MeasurementUnit unit,            
+            MeasurementUnit unit,
             decimal applicationPercentage,
             string? fallbackIndicator,
             Guid? createdBy)
@@ -25,7 +25,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                 apuAssignmentId,
                 sourceComponentId,
                 description,
-                unit,                
+                unit,
                 fallbackIndicator,
                 createdBy)
         {
@@ -89,7 +89,7 @@ namespace Kynakee.Modules.Projects.Domain.Entities.Scoped.ConcreteComponent
                     apuAssignmentId,
                     sourceComponentId,
                     description.Trim(),
-                    unit!,                    
+                    unit!,
                     applicationPercentage,
                     Normalize(fallbackIndicator),
                     createdBy));

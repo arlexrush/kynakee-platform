@@ -1,5 +1,5 @@
-using System.Net.Http.Headers;
 using Kynakee.Modules.Ai.Domain.Enums;
+using System.Net.Http.Headers;
 
 namespace Kynakee.Modules.Ai.Domain.Services;
 

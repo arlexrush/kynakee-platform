@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "development-storage",
+      "credentials": [
+        {
+          "accessKey": "synthetic-access",
+          "secretKey": "synthetic-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}
