@@ -11,5 +11,6 @@
   <PropertyGroup Condition="'$(DOTNET_RUNNING_IN_CONTAINER)' == 'true'">
     <BaseIntermediateOutputPath>obj/container/</BaseIntermediateOutputPath>
     <BaseOutputPath>bin/container/</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
   </PropertyGroup>
 </Project>
