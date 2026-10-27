@@ -154,7 +154,14 @@ internal sealed class IdentityRepository : IIdentityRepository
                     tenant.Branding.LogoUrl,
                     tenant.Branding.Email))
              {
-                 Version = tenant.Version
+                 Version = tenant.Version,
+                 FiscalAddress = tenant.FiscalAddress == null ? null : new IdentityFiscalAddress(
+                     tenant.FiscalAddress.Country,
+                     tenant.FiscalAddress.Region,
+                     tenant.FiscalAddress.Province,
+                     tenant.FiscalAddress.Municipality,
+                     tenant.FiscalAddress.PostalCode,
+                     tenant.FiscalAddress.Street)
              })
             .SingleOrDefaultAsync(cancellationToken);
 

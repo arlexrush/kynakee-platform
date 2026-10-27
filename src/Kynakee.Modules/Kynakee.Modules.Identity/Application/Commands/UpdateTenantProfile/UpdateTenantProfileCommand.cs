@@ -15,4 +15,8 @@ public sealed record UpdateTenantProfileCommand(
     string? PostalCode,
     string? Street,
     string PlanId,
-    uint ExpectedVersion) : ICommand;
+    uint ExpectedVersion) : ICommand
+{
+    /// <summary>Fields supplied by the caller; unspecified fiscal fields retain their current values.</summary>
+    public FiscalProfileFields SuppliedFiscalFields { get; init; } = FiscalProfileFields.All;
+}

@@ -115,6 +115,26 @@ public sealed class BillingHttpPipelineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task HistoryInvalidLimitShouldReturnFieldValidationProblem()
+    {
+        using var client = CreateClient();
+        using var response = await client.GetAsync(new Uri("/api/v1/billing/credits/transactions?limit=0", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        json.RootElement.GetProperty("errors").TryGetProperty("limit", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HistoryInvalidDateRangeShouldUseHttpQueryFieldName()
+    {
+        using var client = CreateClient();
+        using var response = await client.GetAsync(new Uri("/api/v1/billing/credits/transactions?from=2026-02-02T00%3A00%3A00Z&to=2026-01-01T00%3A00%3A00Z", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        json.RootElement.GetProperty("errors").TryGetProperty("to", out _).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task HistoryRechargeFilterShouldReturnRecharge()
     {
         using var client = CreateClient();
