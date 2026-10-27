@@ -41,14 +41,7 @@ namespace Kynakee.Api.Application.Behaviors
                 return await next(cancellationToken).ConfigureAwait(false);
             }
 
-            var message = string.Join(
-                "; ",
-                failures.Select(failure =>
-                    $"{failure.PropertyName}: {failure.ErrorMessage}"));
-
-            var error = ApplicationError.Validation(
-                "VALIDATION_001",
-                message);
+            var error = ApplicationError.ValidationFields(failures.Select(failure => failure.PropertyName));
 
             return ResultResponseFactory.CreateFailure<TResponse>(error);
         }

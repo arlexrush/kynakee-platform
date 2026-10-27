@@ -26,6 +26,8 @@ public class IdentityCommandValidatorTests
     [InlineData(null, "Region", null, null, null, null)]
     [InlineData("ES", null, null, null, null, null)]
     [InlineData("ES", null, null, "Madrid", "28001", null)]
+    [InlineData("", "", "", "", "", "")]
+    [InlineData("ES", " ", null, "Madrid", "28001", "Calle Mayor 1")]
     public void UpdateTenantProfileValidatorPartialFiscalAddressShouldRejectInput(
         string? country, string? region, string? province, string? municipality, string? postalCode, string? street)
     {
