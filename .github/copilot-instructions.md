@@ -276,5 +276,7 @@ result.Error!.Type switch
 
 ### Identity Iterative Closure
 - In the current work on closing Identity, authorize continuing iteratively through all pending steps without requesting authorization between each step; upon completing each step, verify and communicate the percentage of progress, continuing until reaching 100%, and distinguish between implementation, testing, and actual operation without declaring closure in the presence of gaps.
----
+
+### Local Invitation Testing
+- For local invitation testing, allow HTTP only for localhost in the Development environment; the local interface uses `http://localhost:3000/invitations/accept`.
 
