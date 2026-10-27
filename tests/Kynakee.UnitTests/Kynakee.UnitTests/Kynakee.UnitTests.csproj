@@ -27,6 +27,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\ValidationBehavior.cs" Link="Api\Behaviors\ValidationBehavior.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Endpoints\UpdateTenantProfileRequest.cs" Link="Api\Endpoints\UpdateTenantProfileRequest.cs" />
+    <Compile Include="..\..\..\src\Kynakee.Api\Endpoints\ApiProblems.cs" Link="Api\Endpoints\ApiProblems.cs" />
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\TenantIsolationBehavior.cs" Link="Api\Behaviors\TenantIsolationBehavior.cs" />
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Behaviors\TransactionBehavior.cs" Link="Api\Behaviors\TransactionBehavior.cs" />
     <Compile Include="..\..\..\src\Kynakee.Api\Application\Abstractions\ITransactionManager.cs" Link="Api\Abstractions\ITransactionManager.cs" />

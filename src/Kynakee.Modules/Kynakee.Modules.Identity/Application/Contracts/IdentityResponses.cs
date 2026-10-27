@@ -23,9 +23,20 @@ public sealed record IdentityTenantProfile(
     IdentityCompanySettings Settings,
     IdentityCompanyBranding Branding)
 {
+    /// <summary>The tenant's fiscal address, when supplied.</summary>
+    public IdentityFiscalAddress? FiscalAddress { get; init; }
+
     [JsonIgnore]
     public uint Version { get; init; }
 }
+
+public sealed record IdentityFiscalAddress(
+    string Country,
+    string? Region,
+    string? Province,
+    string? Municipality,
+    string? PostalCode,
+    string? Street);
 
 public sealed record IdentityCompanySettings(
     decimal Administration,

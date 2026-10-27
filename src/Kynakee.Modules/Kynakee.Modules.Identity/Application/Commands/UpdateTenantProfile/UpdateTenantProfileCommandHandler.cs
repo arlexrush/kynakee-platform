@@ -56,17 +56,36 @@ public sealed class UpdateTenantProfileCommandHandler : IRequestHandler<UpdateTe
                 "IDENTITY_TENANT_SLUG_ALREADY_USED", "The tenant slug is already in use."));
         }
 
-        var taxId = request.TaxId is null ? null : TaxId.Create(request.TaxId, request.TaxCountry);
+        var fields = request.SuppliedFiscalFields;
+        var merged = request with
+        {
+            TaxId = fields.HasFlag(FiscalProfileFields.TaxId) ? request.TaxId : tenant.TaxId?.Value,
+            TaxCountry = fields.HasFlag(FiscalProfileFields.TaxCountry) ? request.TaxCountry : tenant.TaxId?.CountryCode,
+            FiscalCountry = fields.HasFlag(FiscalProfileFields.FiscalCountry) ? request.FiscalCountry : tenant.FiscalAddress?.Country,
+            Region = fields.HasFlag(FiscalProfileFields.Region) ? request.Region : tenant.FiscalAddress?.Region,
+            Province = fields.HasFlag(FiscalProfileFields.Province) ? request.Province : tenant.FiscalAddress?.Province,
+            Municipality = fields.HasFlag(FiscalProfileFields.Municipality) ? request.Municipality : tenant.FiscalAddress?.Municipality,
+            PostalCode = fields.HasFlag(FiscalProfileFields.PostalCode) ? request.PostalCode : tenant.FiscalAddress?.PostalCode,
+            Street = fields.HasFlag(FiscalProfileFields.Street) ? request.Street : tenant.FiscalAddress?.Street,
+            SuppliedFiscalFields = FiscalProfileFields.All
+        };
+        var validation = await new UpdateTenantProfileCommandValidator().ValidateAsync(merged, cancellationToken).ConfigureAwait(false);
+        if (!validation.IsValid)
+        {
+            return ResultFactory.Failure(ApplicationError.ValidationFields(validation.Errors.Select(failure => failure.PropertyName)));
+        }
+
+        var taxId = merged.TaxId is null ? null : TaxId.Create(merged.TaxId, merged.TaxCountry);
         Result<Address>? address = null;
-        if (UpdateTenantProfileCommandValidator.HasFiscalAddress(request))
+        if (UpdateTenantProfileCommandValidator.HasFiscalAddress(merged))
         {
             address = Address.Create(
-                request.FiscalCountry,
-                request.Region,
-                request.Province,
-                request.Municipality,
-                request.PostalCode,
-                request.Street);
+                merged.FiscalCountry,
+                merged.Region,
+                merged.Province,
+                merged.Municipality,
+                merged.PostalCode,
+                merged.Street);
         }
 
         if (slug.IsFailure || taxId?.IsFailure == true || address?.IsFailure == true)

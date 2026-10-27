@@ -488,6 +488,85 @@ public sealed class IdentityHttpPreconditionTests : IAsyncLifetime
             responses.Select(response => response.StatusCode).Order().ToArray());
     }
 
+    [Fact]
+    public async Task TenantProfileFiscalAddressShouldBeReturnedByGet()
+    {
+        await SeedFiscalProfileAsync();
+        using var client = _app.GetTestClient();
+        using var response = await client.GetAsync(new Uri("/api/v1/identity/tenants/me", UriKind.Relative), TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal("Main Street", json.RootElement.GetProperty("data").GetProperty("fiscalAddress").GetProperty("street").GetString());
+    }
+
+    [Fact]
+    public async Task TenantProfileOmittedFiscalFieldsShouldPreserveExistingValues()
+    {
+        await SeedFiscalProfileAsync();
+        using var client = _app.GetTestClient();
+        using var request = CreateRequest(1);
+        request.Headers.TryAddWithoutValidation("If-Match", await ReadTagAsync(client, 1));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var read = await client.GetAsync(new Uri("/api/v1/identity/tenants/me", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var json = JsonDocument.Parse(await read.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        var data = json.RootElement.GetProperty("data");
+
+        Assert.Equal(("GB123456789", "Main Street"), (data.GetProperty("taxId").GetString(), data.GetProperty("fiscalAddress").GetProperty("street").GetString()));
+    }
+
+    [Fact]
+    public async Task TenantProfileExplicitNullOptionalRegionShouldClearRegion()
+    {
+        await SeedFiscalProfileAsync();
+        using var client = _app.GetTestClient();
+        using var request = Put("tenants/me", "{\"name\":\"Tenant\",\"slug\":\"preconditions\",\"planId\":\"starter\",\"region\":null}");
+        request.Headers.TryAddWithoutValidation("If-Match", await ReadTagAsync(client, 1));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var read = await client.GetAsync(new Uri("/api/v1/identity/tenants/me", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var json = JsonDocument.Parse(await read.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("data").GetProperty("fiscalAddress").GetProperty("region").ValueKind);
+    }
+
+    [Fact]
+    public async Task TenantProfileExplicitNullRequiredAddressFieldShouldRejectUpdate()
+    {
+        await SeedFiscalProfileAsync();
+        using var client = _app.GetTestClient();
+        using var request = Put("tenants/me", "{\"name\":\"Tenant\",\"slug\":\"preconditions\",\"planId\":\"starter\",\"street\":null}");
+        request.Headers.TryAddWithoutValidation("If-Match", await ReadTagAsync(client, 1));
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task TenantProfileInvalidFieldShouldReturnValidationProblem()
+    {
+        using var client = _app.GetTestClient();
+        using var request = Put("tenants/me", "{\"name\":\"\",\"slug\":\"preconditions\",\"planId\":\"starter\"}");
+        request.Headers.TryAddWithoutValidation("If-Match", await ReadTagAsync(client, 1));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        Assert.True(json.RootElement.GetProperty("errors").TryGetProperty("name", out _));
+    }
+
+    private async Task SeedFiscalProfileAsync()
+    {
+        using var scope = _app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var tenant = await db.Tenants.SingleAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
+        var result = tenant.UpdateProfile("Tenant", TenantSlug.Create("preconditions").Value,
+            TaxId.Create("GB123456789", "GB").Value, Address.Create("GB", "London", null, "London", "SW1A 1AA", "Main Street").Value, "starter");
+        Assert.True(result.IsSuccess);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken).ConfigureAwait(true);
+    }
+
     private HttpRequestMessage CreateRequest(int operation) => operation switch
     {
         0 => Put("users/me", "{\"firstName\":\"Changed\",\"lastName\":\"Owner\",\"phone\":null}"),
