@@ -51,6 +51,8 @@ Las entradas iniciales «Pendiente de evaluación» indican que esta guía no af
 
 Consultar la [matriz de los 18 endpoints](../API/KynakeeApiContracts.md#matriz-por-endpoint) antes de modificar o cerrar una garantía; no mantener una segunda tabla de rutas aquí.
 
+**Revisión del perfil fiscal:** el cambio de proyección y semántica omitido/null conserva el ETag existente, sin modificación de esquema. La [evidencia y sus límites](Estado-y-gobernanza.md#revisión-del-perfil-fiscal-y-validaciones) incluye pruebas unitarias y de mapeo HTTP aislado; las nuevas pruebas HTTP sobre PostgreSQL no ejecutaron aserciones por indisponibilidad de Docker. No extrapolar la evidencia anterior de concurrencia al nuevo comportamiento ni declarar verificada la persistencia hasta ejecutar esas pruebas.
+
 La [política de recuperación y replay seguro](../API/KynakeeApiContracts.md#recuperación-precondiciones-y-límites-comunes) recoge la revalidación implementada y probada localmente en el paso 6; JWT/Gateway y correo completos siguen pendientes. Las huellas no caducan; purgar solo resultados tras 24 h. Claves HMAC independientes estables y cifrado versionado requieren preparación legacy antes de usar bases existentes. Un ETag firmado protege integridad, no confidencialidad de la versión; no confundirlo con cifrado ni con un bloqueo entre Owners distintos.
 
 ## Plantilla de cierre de garantía

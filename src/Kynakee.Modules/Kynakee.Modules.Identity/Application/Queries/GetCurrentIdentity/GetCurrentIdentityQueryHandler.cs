@@ -49,6 +49,6 @@ public sealed class GetCurrentIdentityQueryHandler
                 "IDENTITY_PROFILE_FORBIDDEN", "The current identity cannot access this profile."));
         }
 
-        return ResultFactory.Success(new IdentitySessionProfile(user, tenant));
+        return ResultFactory.Success(new IdentitySessionProfile(user, tenant with { FiscalAddress = null }));
     }
 }
