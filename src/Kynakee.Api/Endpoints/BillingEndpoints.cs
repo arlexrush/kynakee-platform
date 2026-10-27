@@ -21,6 +21,10 @@ namespace Kynakee.Api.Endpoints;
 /// TryGetTenant y MapResult para autorización y mapeo de errores.</remarks>
 internal static class BillingEndpoints
 {
+    private static readonly IReadOnlyDictionary<string, string> ValidationFieldNames = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["endDate"] = "to"
+    };
     /// <summary>
     /// Registra los endpoints HTTP de facturación para obtener el saldo de créditos y el historial de transacciones.
     /// </summary>
@@ -140,7 +144,7 @@ internal static class BillingEndpoints
     /// código, detalle y el código de estado apropiado en caso de fallo.
     /// </summary>
     /// <remarks>Los tipos de error se mapean a códigos HTTP: Validation -> 400, Unauthorized -> 401, NotFound
-    /// -> 404, Conflict -> 422, y por defecto 500. La respuesta de éxito incluye TraceIdentifier y
+    /// -> 404, Conflict -> 409, y por defecto 500. La respuesta de éxito incluye TraceIdentifier y
     /// DateTime.UtcNow.</remarks>
     /// <typeparam name="T">Tipo del valor encapsulado por el Result cuando la operación es exitosa.</typeparam>
     /// <param name="result">Resultado de la operación, con el valor en caso de éxito o la información de error en caso de fallo.</param>
@@ -150,15 +154,14 @@ internal static class BillingEndpoints
     private static IResult MapResult<T>(Result<T> result, HttpContext context) =>
         result.IsSuccess
             ? Results.Ok(new ApiResponse<T>(result.Value!, context.TraceIdentifier, DateTime.UtcNow))
-            : Results.Problem(
-                title: result.Error!.Code,
-                detail: result.Error.Message,
-                statusCode: result.Error.Type switch
+            : ApiProblems.FromError(
+                result.Error!,
+                result.Error!.Type switch
                 {
                     ErrorType.Validation => StatusCodes.Status400BadRequest,
                     ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
                     ErrorType.NotFound => StatusCodes.Status404NotFound,
                     ErrorType.Conflict => StatusCodes.Status409Conflict,
                     _ => StatusCodes.Status500InternalServerError
-                });
+                }, ValidationFieldNames);
 }
