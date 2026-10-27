@@ -97,6 +97,22 @@ public sealed class IdentityAccessHandlerTests
         result.Value!.User.Id.Should().Be(_userId);
     }
 
+    [Fact]
+    public async Task CurrentIdentityFiscalAddressShouldNotBeExposed()
+    {
+        var profile = new IdentityTenantProfile(_tenantId, "Tenant", "tenant", TenantType.Company, "starter", TenantStatus.Active, null, null,
+            new IdentityCompanySettings(0, 0, 0, 0, 0, 0), new IdentityCompanyBranding(null, null, null, null))
+        {
+            FiscalAddress = new IdentityFiscalAddress("GB", null, null, "London", "SW1A 1AA", "Main Street")
+        };
+        _repository.GetTenantProfileAsync(_tenantId, Arg.Any<CancellationToken>()).Returns(profile);
+
+        var result = await new GetCurrentIdentityQueryHandler(_repository, _context)
+            .Handle(new GetCurrentIdentityQuery(_tenantId, _userId), CancellationToken.None);
+
+        result.Value!.Tenant.FiscalAddress.Should().BeNull();
+    }
+
     [Theory]
     [InlineData("Role")]
     [InlineData("Deactivate")]
@@ -192,6 +208,86 @@ public sealed class IdentityAccessHandlerTests
 
         result.IsSuccess.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task UpdateTenantProfileOmittedFiscalFieldsShouldPreserveExistingValues()
+    {
+        var tenant = CreateFiscalTenant();
+        var command = FiscalCommand(tenant) with { SuppliedFiscalFields = FiscalProfileFields.None };
+
+        var result = await new UpdateTenantProfileCommandHandler(_repository, _context).Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        tenant.TaxId!.Value.Should().Be("GB123456789");
+        tenant.FiscalAddress!.Street.Should().Be("Main Street");
+    }
+
+    [Fact]
+    public async Task UpdateTenantProfileExplicitNullFiscalValuesShouldClearFiscalProfile()
+    {
+        var tenant = CreateFiscalTenant();
+        var command = FiscalCommand(tenant) with { SuppliedFiscalFields = FiscalProfileFields.All };
+
+        var result = await new UpdateTenantProfileCommandHandler(_repository, _context).Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        tenant.TaxId.Should().BeNull();
+        tenant.FiscalAddress.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateTenantProfileExplicitNullTaxIdAloneShouldRejectIncompleteTaxIdentity()
+    {
+        var tenant = CreateFiscalTenant();
+        var command = FiscalCommand(tenant) with { SuppliedFiscalFields = FiscalProfileFields.TaxId };
+
+        var result = await new UpdateTenantProfileCommandHandler(_repository, _context).Handle(command, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        tenant.TaxId!.Value.Should().Be("GB123456789");
+    }
+
+    [Fact]
+    public async Task UpdateTenantProfileExplicitNullRegionShouldClearRegion()
+    {
+        var tenant = CreateFiscalTenant();
+        var command = FiscalCommand(tenant) with { SuppliedFiscalFields = FiscalProfileFields.Region };
+
+        var result = await new UpdateTenantProfileCommandHandler(_repository, _context).Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        tenant.FiscalAddress!.Region.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateTenantProfileExplicitNullStreetShouldRejectIncompleteAddress()
+    {
+        var tenant = CreateFiscalTenant();
+        var command = FiscalCommand(tenant) with { SuppliedFiscalFields = FiscalProfileFields.Street };
+
+        var result = await new UpdateTenantProfileCommandHandler(_repository, _context).Handle(command, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        tenant.FiscalAddress!.Street.Should().Be("Main Street");
+    }
+
+    private Tenant CreateFiscalTenant()
+    {
+        var tenant = Tenant.Create("Tenant", TenantSlug.Create("tenant").Value, TenantType.Company,
+            TaxId.Create("GB123456789", "GB").Value,
+            Address.Create("GB", "London", null, "London", "SW1A 1AA", "Main Street").Value, "starter").Value!;
+        _context.TenantId.Returns(tenant.Id);
+        _repository.GetUserProfileAsync(tenant.Id, _userId, Arg.Any<CancellationToken>()).Returns(
+            new IdentityUserProfile(_userId, tenant.Id, "Test", "Owner", "owner@example.test", null, UserRole.Owner, UserStatus.Active));
+        _repository.GetTenantProfileAsync(tenant.Id, Arg.Any<CancellationToken>()).Returns(
+            new IdentityTenantProfile(tenant.Id, "Tenant", "tenant", TenantType.Company, "starter", TenantStatus.Active, null, null,
+                new IdentityCompanySettings(0, 0, 0, 0, 0, 0), new IdentityCompanyBranding(null, null, null, null)));
+        _repository.GetTenantAsync(tenant.Id, Arg.Any<CancellationToken>()).Returns(tenant);
+        return tenant;
+    }
+
+    private static UpdateTenantProfileCommand FiscalCommand(Tenant tenant) =>
+        new(tenant.Id, "Updated tenant", "tenant", null, null, null, null, null, null, null, null, "starter", tenant.Version);
 
     private async Task<Kynakee.Modules.SharedKernel.Application.IResult> ExecuteAsync(string operation, Guid tenantId) => operation switch
     {

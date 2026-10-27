@@ -72,8 +72,20 @@ public sealed class ValidationBehaviorTests
             Code = "VALIDATION_001",
             Type = ErrorType.Validation
         });
-        result.Error!.Message.Should().Contain("Value: Value is required.");
+        result.Error!.Errors.Should().ContainKey("value");
         handlerInvoked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task HandleSensitiveValidationMessageShouldNotExposeSubmittedValue()
+    {
+        const string secret = "sensitive-password";
+        var behavior = new ValidationBehavior<TestRequest, Result<TestResponse>>([new SensitiveRequestValidator()]);
+
+        var result = await behavior.Handle(new TestRequest(secret),
+            _ => Task.FromResult(ResultFactory.Success(new TestResponse("unexpected"))), CancellationToken.None);
+
+        System.Text.Json.JsonSerializer.Serialize(result.Error).Should().NotContain(secret);
     }
 
     private sealed record TestRequest(string Value);
@@ -86,5 +98,13 @@ public sealed class ValidationBehaviorTests
         {
             RuleFor(request => request.Value).NotEmpty().WithMessage("Value is required.");
         }
+    }
+
+    private sealed class SensitiveRequestValidator : AbstractValidator<TestRequest>
+    {
+        public SensitiveRequestValidator()
+        {
+            RuleFor(request => request.Value).Must(_ => false).WithMessage("Rejected {PropertyValue}");
+    }
     }
 }

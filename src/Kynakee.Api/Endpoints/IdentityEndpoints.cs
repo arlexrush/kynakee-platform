@@ -153,7 +153,7 @@ internal static class IdentityEndpoints
         tenant.MapPut("/tenants/me", UpdateTenantProfileAsync)
             .WithName("UpdateTenantProfile")
             .WithSummary("Update tenant profile and fiscal information")
-            .WithDescription("Updates the tenant name, unique slug, tax identifier and fiscal address.")
+            .WithDescription("Updates the tenant profile. Omitted fiscal fields are preserved; null clears a field when the resulting fiscal information remains valid.")
             .Produces(204)
             .ProducesProblem(400)
             .ProducesProblem(401)
@@ -226,11 +226,9 @@ internal static class IdentityEndpoints
     }
 
     /// <summary>
-    /// Envía el comando para registrar el propietario del tenant y devuelve el resultado mapeado como respuesta HTTP
-    /// 201.
+    /// Envía el comando para registrar un propietario pendiente de verificación y devuelve un acuse HTTP 202 sin sesión.
     /// </summary>
-    /// <remarks>Utiliza sender.Send para procesar el comando y MapResult para convertir el resultado en una
-    /// respuesta Created (201).</remarks>
+    /// <remarks>Utiliza sender.Send para procesar el comando y MapResult para convertir el resultado en una respuesta Accepted (202).</remarks>
     /// <param name="request">Comando RegisterTenantOwnerCommand con los datos de registro del propietario del tenant.</param>
     /// <param name="sender">Instancia ISender (MediatR) utilizada para enviar el comando.</param>
     /// <param name="context">HttpContext para construir la respuesta HTTP y acceder al contexto de la petición.</param>
@@ -423,7 +421,7 @@ internal static class IdentityEndpoints
                     request.PostalCode,
                     request.Street,
                     request.PlanId,
-                    expectedVersion),
+                    expectedVersion) { SuppliedFiscalFields = request.SuppliedFiscalFields },
                 cancellationToken)
             .ConfigureAwait(false);
         return MapStatus(result);
@@ -767,10 +765,7 @@ internal static class IdentityEndpoints
     }
 
     private static IResult ToProblem(ApplicationError error, int statusCode) =>
-        Results.Problem(
-            title: error.Code,
-            detail: error.Message,
-            statusCode: statusCode);
+        ApiProblems.FromError(error, statusCode);
 }
 
 #pragma warning disable CA1812
@@ -790,19 +785,6 @@ internal sealed record UpdateTenantSettingsRequest(
     decimal SafetyHealth,
     decimal Environment,
     decimal Contingency);
-
-internal sealed record UpdateTenantProfileRequest(
-    string Name,
-    string Slug,
-    string? TaxId,
-    string? TaxCountry,
-    string? FiscalCountry,
-    string? Region,
-    string? Province,
-    string? Municipality,
-    string? PostalCode,
-    string? Street,
-    string PlanId);
 
 internal sealed record ChangeUserRoleRequest(Kynakee.Modules.Identity.Domain.ValueObjects.UserRole Role);
 #pragma warning restore CA1812

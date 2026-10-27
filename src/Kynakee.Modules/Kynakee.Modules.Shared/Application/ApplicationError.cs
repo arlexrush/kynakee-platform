@@ -1,4 +1,8 @@
-﻿namespace Kynakee.Modules.SharedKernel.Application
+﻿using System.Globalization;
+using System.Resources;
+using System.Text.Json;
+
+namespace Kynakee.Modules.SharedKernel.Application
 {
     /// <summary>
     /// Represents a structured error returned by a Result failure.
@@ -19,6 +23,25 @@
     /// </param>
     public sealed record ApplicationError(string Code, string Message, ErrorType Type)
     {
+        private static readonly ResourceManager ValidationMessages = new(
+            "Kynakee.Modules.SharedKernel.Application.ValidationResources", typeof(ApplicationError).Assembly);
+
+        /// <summary>Safe validation messages grouped by JSON field name, when available.</summary>
+        public IReadOnlyDictionary<string, string[]>? Errors { get; init; }
+
+        /// <summary>Creates a validation error without exposing submitted values.</summary>
+        public static ApplicationError ValidationFields(IEnumerable<string> fields)
+        {
+            ArgumentNullException.ThrowIfNull(fields);
+            var message = ValidationMessages.GetString("InvalidRequest", CultureInfo.CurrentUICulture)!;
+            var fieldMessage = ValidationMessages.GetString("InvalidField", CultureInfo.CurrentUICulture)!;
+            var errors = fields.Where(static field => !string.IsNullOrWhiteSpace(field))
+                .Select(JsonNamingPolicy.CamelCase.ConvertName)
+                .Distinct(StringComparer.Ordinal)
+                .ToDictionary(static field => field, _ => new[] { fieldMessage }, StringComparer.Ordinal);
+            return new ApplicationError("VALIDATION_001", message, ErrorType.Validation) { Errors = errors };
+        }
+
         // ── Static factory methods ────────────────────────────────────────────────
 
         /// <summary>Creates a Validation error (HTTP 400).</summary>
