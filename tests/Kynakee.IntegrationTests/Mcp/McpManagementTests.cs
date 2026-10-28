@@ -45,6 +45,7 @@ public sealed class McpManagementTests : IAsyncLifetime
             ["Identity:InvitationEmail:Keys:v1"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
         }).Build();
         services.AddLogging();
+        services.AddSingleton(TestHostEnvironment.Create());
         services.AddSingleton<IConfiguration>(configuration);
         services.AddScoped<ITenantContext>(_ => _tenantContext);
         services.AddIdentityModule(configuration);

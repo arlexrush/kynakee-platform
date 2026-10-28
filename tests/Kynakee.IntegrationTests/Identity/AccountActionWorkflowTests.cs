@@ -41,6 +41,7 @@ public sealed class AccountActionWorkflowTests : IAsyncLifetime
         }).Build();
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton(TestHostEnvironment.Create());
         services.AddSingleton<TimeProvider>(_clock);
         services.AddSingleton<IConfiguration>(configuration);
         services.AddScoped<ITenantContext>(_ => new AnonymousTenant());
