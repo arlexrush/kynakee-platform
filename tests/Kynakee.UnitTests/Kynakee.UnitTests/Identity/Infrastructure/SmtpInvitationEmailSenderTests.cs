@@ -1,6 +1,9 @@
 using FluentAssertions;
+using Kynakee.Modules.Identity;
+using Kynakee.Modules.Identity.Application.Contracts;
 using Kynakee.Modules.Identity.Infrastructure.Email;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
 using System.Net.Mail;
@@ -10,6 +13,48 @@ namespace Kynakee.UnitTests.Identity.Infrastructure;
 
 public class SmtpInvitationEmailSenderTests
 {
+    [Fact]
+    public async Task IdentityModuleResolvedSenderInDevelopmentShouldAcceptLocalHttp()
+    {
+        var configuration = CreateConfiguration("http://localhost:3000/invitations/accept");
+        var transport = new CapturingSmtpInvitationTransport();
+        var services = new ServiceCollection();
+        services.AddSingleton(configuration);
+        services.AddSingleton(CreateEnvironment(Environments.Development));
+        services.AddSingleton<ISmtpInvitationTransport>(transport);
+        services.AddIdentityModule(configuration);
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        using var scope = provider.CreateScope();
+        var sender = scope.ServiceProvider.GetRequiredService<IInvitationEmailSender>();
+        sender.Should().BeOfType<SmtpInvitationEmailSender>();
+
+        await sender.SendInvitationAsync("invitee@example.test", "Tenant", "token", CancellationToken.None);
+
+        transport.Message!.Body.Should().Contain("http://localhost:3000/invitations/accept?token=token");
+    }
+
+    [Theory]
+    [InlineData("Testing")]
+    [InlineData("Production")]
+    public async Task IdentityModuleResolvedSenderOutsideDevelopmentShouldRejectLocalHttp(string environment)
+    {
+        var configuration = CreateConfiguration("http://localhost:3000/invitations/accept");
+        var transport = new CapturingSmtpInvitationTransport();
+        var services = new ServiceCollection();
+        services.AddSingleton(configuration);
+        services.AddSingleton(CreateEnvironment(environment));
+        services.AddSingleton<ISmtpInvitationTransport>(transport);
+        services.AddIdentityModule(configuration);
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        using var scope = provider.CreateScope();
+        var sender = scope.ServiceProvider.GetRequiredService<IInvitationEmailSender>();
+
+        var act = () => sender.SendInvitationAsync("invitee@example.test", "Tenant", "token", CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        transport.Message.Should().BeNull();
+    }
+
     [Fact]
     public async Task SendInvitationShouldBuildEscapedHttpsMessageAndUseConfiguredTransport()
     {
