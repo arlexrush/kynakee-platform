@@ -9,6 +9,7 @@ using Kynakee.Modules.Identity.Domain.ValueObjects;
 using Kynakee.Modules.SharedKernel.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NSubstitute;
 using Xunit;
 
@@ -37,6 +38,9 @@ public sealed class AcceptInvitationCommandHandlerTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(Substitute.For<ITenantContext>());
+        var environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns("Testing");
+        services.AddSingleton(environment);
         services.AddIdentityModule(new ConfigurationBuilder().Build());
         services.AddScoped(_ => repository);
         services.AddSingleton(tokens);

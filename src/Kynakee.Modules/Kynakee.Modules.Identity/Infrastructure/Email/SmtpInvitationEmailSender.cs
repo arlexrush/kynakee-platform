@@ -1,5 +1,6 @@
 using Kynakee.Modules.Identity.Application.Contracts;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System.Net.Mail;
 using System.Globalization;
 using System.Resources;
@@ -13,15 +14,19 @@ internal sealed class SmtpInvitationEmailSender : IInvitationEmailSender
     private static readonly ResourceManager Resources = new("Kynakee.Modules.Identity.Infrastructure.IdentityPersistenceResources", typeof(SmtpInvitationEmailSender).Assembly);
     private readonly IConfiguration _configuration;
     private readonly ISmtpInvitationTransport _transport;
+    private readonly IHostEnvironment _environment;
 
     public SmtpInvitationEmailSender(
         IConfiguration configuration,
-        ISmtpInvitationTransport transport)
+        ISmtpInvitationTransport transport,
+        IHostEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(transport);
+        ArgumentNullException.ThrowIfNull(environment);
         _configuration = configuration;
         _transport = transport;
+        _environment = environment;
     }
 
     public async Task SendInvitationAsync(
@@ -39,7 +44,9 @@ internal sealed class SmtpInvitationEmailSender : IInvitationEmailSender
         var from = RequiredSetting("Smtp:From");
         var invitationBaseUrl = RequiredSetting("Authentication:InvitationBaseUrl");
         if (!Uri.TryCreate(invitationBaseUrl, UriKind.Absolute, out var invitationUri) ||
-            invitationUri.Scheme != Uri.UriSchemeHttps)
+            (invitationUri.Scheme != Uri.UriSchemeHttps &&
+             !(_environment.IsDevelopment() && invitationUri.Scheme == Uri.UriSchemeHttp &&
+               string.Equals(invitationUri.Host, "localhost", StringComparison.OrdinalIgnoreCase))))
         {
             throw new InvalidOperationException(Resources.GetString("MailInvitationUrlInvalid", CultureInfo.CurrentUICulture));
         }

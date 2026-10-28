@@ -24,7 +24,7 @@
   <data name="MailOAuthAccountMismatch" xml:space="preserve"><value>The authorized account does not match the configured SMTP account.</value></data>
   <data name="MailOAuthCacheInvalid" xml:space="preserve"><value>The mail authorization cache cannot be decrypted. Restore its matching key or authorize again.</value></data>
   <data name="MailOAuthTransportFailed" xml:space="preserve"><value>The OAuth SMTP transport could not complete delivery. Check connectivity, mailbox authorization and SMTP AUTH policy.</value></data>
-  <data name="MailInvitationUrlInvalid" xml:space="preserve"><value>Authentication:InvitationBaseUrl must be an absolute HTTPS URL.</value></data>
+  <data name="MailInvitationUrlInvalid" xml:space="preserve"><value>Authentication:InvitationBaseUrl must be an absolute HTTPS URL, or an HTTP localhost URL in Development.</value></data>
   <data name="MailPortInvalid" xml:space="preserve"><value>Smtp:Port must be between 1 and 65535.</value></data>
   <data name="MailSettingRequired" xml:space="preserve"><value>Configuration setting '{0}' is required to send invitation emails.</value></data>
   <data name="MailInvitationSubject" xml:space="preserve"><value>Invitación a Kynakee</value></data>

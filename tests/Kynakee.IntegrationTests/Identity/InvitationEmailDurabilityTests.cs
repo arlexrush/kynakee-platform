@@ -37,6 +37,7 @@ public sealed class InvitationEmailDurabilityTests : IAsyncLifetime
         }).Build();
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton(TestHostEnvironment.Create());
         services.AddSingleton<TimeProvider>(_clock);
         services.AddScoped<ITenantContext>(_ => new DeliveryTenantContext(_tenantId, _userId));
         services.AddIdentityModule(configuration);

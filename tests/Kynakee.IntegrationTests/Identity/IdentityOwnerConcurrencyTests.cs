@@ -38,6 +38,7 @@ public sealed class IdentityOwnerConcurrencyTests : IAsyncLifetime
         var ct = timeout.Token;
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton(TestHostEnvironment.Create());
         services.AddScoped<OwnerTenantContext>();
         services.AddScoped<ITenantContext>(provider => provider.GetRequiredService<OwnerTenantContext>());
         services.AddIdentityModule(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
@@ -102,6 +103,7 @@ public sealed class IdentityOwnerConcurrencyTests : IAsyncLifetime
         var ct = timeout.Token;
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton(TestHostEnvironment.Create());
         services.AddScoped<OwnerTenantContext>();
         services.AddScoped<ITenantContext>(provider => provider.GetRequiredService<OwnerTenantContext>());
         services.AddIdentityModule(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
