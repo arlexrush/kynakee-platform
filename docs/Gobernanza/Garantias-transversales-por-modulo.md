@@ -51,6 +51,8 @@ Las entradas iniciales «Pendiente de evaluación» indican que esta guía no af
 
 **Base activa dev 2026-10-27:** se encontraron ausentes el esquema Identity y el historial EF; tras respaldo privado se aplicaron las tres migraciones existentes, incluida `20261021013532_AddAccountVerificationAndRecovery`. Historial, tablas e índices verificados en PostgreSQL Compose 17.11; alcance y límites en la [evidencia de aplicación](Estado-y-gobernanza.md#aplicación-autorizada-de-migraciones-identity-en-dev). No demuestra restauración, upgrade de datos existentes ni envío SMTP real.
 
+**Base dev recreada 2026-10-28:** tras borrar los volúmenes autorizados se aplicaron desde cero las migraciones existentes de Identity, Billing, Bots y MCP. [Evidencia y límites por módulo](Estado-y-gobernanza.md#migraciones-existentes-tras-recreación-de-volúmenes-dev). No existen migraciones en disco para Projects, KnowledgeBase o AI; no se acreditan flujos completos ni recuperación de datos anteriores.
+
 Consultar la [matriz de los 18 endpoints](../API/KynakeeApiContracts.md#matriz-por-endpoint) antes de modificar o cerrar una garantía; no mantener una segunda tabla de rutas aquí.
 
 **Revisión del perfil fiscal:** el cambio de proyección y semántica omitido/null conserva el ETag existente, sin modificación de esquema. La [evidencia y sus límites](Estado-y-gobernanza.md#revisión-del-perfil-fiscal-y-validaciones) incluye 49 pruebas Identity HTTP/PostgreSQL 17 efímero con `EnsureCreated`, y 13 Billing HTTP/PostgreSQL efímero con migraciones, todas superadas. Se verifican los casos concretos documentados, no el despliegue real ni todas las combinaciones fiscales o carreras posibles.
