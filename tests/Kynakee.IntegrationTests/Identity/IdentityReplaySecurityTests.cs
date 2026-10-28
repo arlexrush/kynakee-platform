@@ -36,6 +36,7 @@ public sealed class IdentityReplaySecurityTests : IAsyncLifetime
         await _postgres.StartAsync(ct).ConfigureAwait(true);
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton(TestHostEnvironment.Create());
         services.AddSingleton<TimeProvider>(_clock);
         services.AddSingleton<ITenantContext>(new AnonymousTenantContext());
         services.AddIdentityModule(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
