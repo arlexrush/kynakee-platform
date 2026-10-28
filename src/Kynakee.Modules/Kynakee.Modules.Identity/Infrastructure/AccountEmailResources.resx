@@ -9,6 +9,10 @@
   <data name="TransactionRequired" xml:space="preserve"><value>Account email requires a new tracked action and its Identity transaction.</value></data>
   <data name="VerifySubject" xml:space="preserve"><value>Verify your Kynakee email address</value></data>
   <data name="ResetSubject" xml:space="preserve"><value>Reset your Kynakee password</value></data>
+  <data name="VerificationUrlInvalid" xml:space="preserve"><value>Configure Authentication:EmailVerificationBaseUrl as an absolute HTTPS URL without credentials, query or fragment; HTTP localhost is permitted only in Development.</value></data>
+  <data name="VerifyBody" xml:space="preserve"><value>Open this single-use link to verify your Kynakee email address: {0}
+Expires at: {1:u}
+Do not share this link. If you did not request this operation, ignore this message. Opening the link does not activate your account by itself.</value></data>
   <data name="Body" xml:space="preserve"><value>Use this single-use token only in the Kynakee account flow you requested: {0}
 Expires at: {1:u}
 Do not share this token. If you did not request this operation, ignore this message. This message does not activate your account or change your password by itself.</value></data>
