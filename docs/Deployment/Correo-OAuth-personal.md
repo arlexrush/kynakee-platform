@@ -28,12 +28,15 @@ Rellenar de forma privada el archivo de entorno correspondiente o el mecanismo d
 | `SMTP_OAUTH_CACHE_KEY` | Base64 de 32 bytes aleatorios independientes de JWT, idempotencia y payloads de correo |
 | `SMTP_OAUTH_CACHE_DIRECTORY` | Ruta absoluta de un directorio privado existente del host, fuera del repositorio |
 | `INVITATION_BASE_URL` | En desarrollo local: `http://localhost:3000/invitations/accept`; en producción: URL HTTPS de la página web desplegada |
+| `EMAIL_VERIFICATION_BASE_URL` | En desarrollo local: `http://localhost:3000/auth/email/verify`; en producción: URL HTTPS de la página de verificación desplegada, sin consulta ni fragmento |
 
 El servidor de correo añade el token a `INVITATION_BASE_URL` como query string. Solo en `Development` admite HTTP con host exactamente `localhost`; en los demás entornos exige HTTPS. La URL local abre la interfaz que se ejecuta en el mismo dispositivo que el navegador y no sirve para probar desde otro dispositivo. Para pruebas externas se necesita una URL HTTPS que exponga la web; el ngrok de este Compose expone el Gateway de la API, no `kynakee-web`. El frontend y su Compose se mantienen en otro repositorio y deben iniciarse por separado.
 
 La URL de producción prevista es `https://kynakee.com/invitations/accept?token=...`; configurarla no crea DNS, hosting ni una página funcional. No enviar invitaciones reales a usuarios hasta implementar y probar en HTTPS una página que lea el token, lo trate como secreto y complete el flujo de aceptación.
 
 La API tiene el endpoint backend anónimo `POST /api/v1/identity/auth/invitations/accept`, que consume el token y acepta los datos requeridos por su contrato. No es una página navegable y no se debe poner como enlace directo de correo: la web debe llamar al endpoint a través del Gateway conforme al contrato API. La configuración local no demuestra que la página, el flujo completo ni el envío real hayan sido verificados.
+
+El correo de registro y reenvío de verificación incluye `EMAIL_VERIFICATION_BASE_URL?token=...`. La URL debe ser absoluta, sin credenciales, consulta ni fragmento; solo se admite HTTP con host exactamente `localhost` en `Development`. Si falta o es inválida, el trabajo se reintenta como error de configuración. La página web independiente debe tratar el token como secreto, evitar logs, analíticas y filtraciones mediante `Referer`, eliminarlo de la URL visible y enviar un POST explícito al endpoint de verificación; una visita GET no debe consumirlo. La ruta web local está planificada y no se ha verificado en este repositorio. La recuperación de contraseña mantiene el correo de token actual.
 
 Los tres Compose montan ese directorio en `/var/lib/kynakee/mail-oauth` y fijan `Smtp:OAuth:CachePath=/var/lib/kynakee/mail-oauth/mail.cache`. El bind requiere que la carpeta exista (`create_host_path: false`); no se crea automáticamente con propietario root ni se cambia el usuario de la API. La API sigue siendo interna y Gateway la única entrada HTTP publicada.
 

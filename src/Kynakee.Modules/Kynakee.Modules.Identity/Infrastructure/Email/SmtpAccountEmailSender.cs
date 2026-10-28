@@ -2,6 +2,7 @@ using Kynakee.Modules.Identity.Application.Contracts;
 using Kynakee.Modules.Identity.Domain.Entities;
 using Kynakee.Modules.Identity.Infrastructure.MailDelivery;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System.Globalization;
 using System.Net.Mail;
 using System.Collections.Concurrent;
@@ -9,9 +10,9 @@ using System.Text;
 
 namespace Kynakee.Modules.Identity.Infrastructure.Email;
 
-internal sealed class SmtpAccountEmailSender(IConfiguration configuration, ISmtpInvitationTransport transport) : IAccountEmailSender
+internal sealed class SmtpAccountEmailSender(IConfiguration configuration, ISmtpInvitationTransport transport, IHostEnvironment environment) : IAccountEmailSender
 {
-    private static readonly ConcurrentDictionary<string, CompositeFormat> BodyFormats = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<(string Culture, string Resource), CompositeFormat> BodyFormats = new();
 
     public async Task SendAsync(string recipient, string token, AccountActionPurpose purpose, DateTimeOffset expiresAt, CancellationToken cancellationToken)
     {
@@ -25,11 +26,25 @@ internal sealed class SmtpAccountEmailSender(IConfiguration configuration, ISmtp
             throw new InvalidOperationException(AccountEmailMessages.Get("ConfigurationInvalid"));
         var port = configuration.GetValue("Smtp:Port", 587);
         if (port != 587) throw new InvalidOperationException(AccountEmailMessages.Get("ConfigurationInvalid"));
+        var bodyResource = "Body";
+        var value = token;
+        if (purpose == AccountActionPurpose.VerifyEmail)
+        {
+            var address = configuration["Authentication:EmailVerificationBaseUrl"];
+            if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttps &&
+                 !(environment.IsDevelopment() && uri.Scheme == Uri.UriSchemeHttp &&
+                   string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))) ||
+                !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
+                throw new InvalidOperationException(AccountEmailMessages.Get("VerificationUrlInvalid"));
+            value = new UriBuilder(uri) { Query = $"token={Uri.EscapeDataString(token)}" }.Uri.AbsoluteUri;
+            bodyResource = "VerifyBody";
+        }
         using var message = new MailMessage(new MailAddress(from), new MailAddress(recipient))
         {
             Subject = AccountEmailMessages.Get(purpose == AccountActionPurpose.VerifyEmail ? "VerifySubject" : "ResetSubject"),
             Body = string.Format(CultureInfo.CurrentCulture,
-                BodyFormats.GetOrAdd(CultureInfo.CurrentUICulture.Name, static _ => CompositeFormat.Parse(AccountEmailMessages.Get("Body"))), token, expiresAt),
+                BodyFormats.GetOrAdd((CultureInfo.CurrentUICulture.Name, bodyResource), static key => CompositeFormat.Parse(AccountEmailMessages.Get(key.Resource))), value, expiresAt),
             IsBodyHtml = false
         };
         await transport.SendAsync(message, host, port, TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
