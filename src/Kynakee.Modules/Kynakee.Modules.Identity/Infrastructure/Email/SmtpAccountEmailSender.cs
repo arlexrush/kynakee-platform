@@ -26,23 +26,19 @@ internal sealed class SmtpAccountEmailSender(IConfiguration configuration, ISmtp
             throw new InvalidOperationException(AccountEmailMessages.Get("ConfigurationInvalid"));
         var port = configuration.GetValue("Smtp:Port", 587);
         if (port != 587) throw new InvalidOperationException(AccountEmailMessages.Get("ConfigurationInvalid"));
-        var bodyResource = "Body";
-        var value = token;
-        if (purpose == AccountActionPurpose.VerifyEmail)
-        {
-            var address = configuration["Authentication:EmailVerificationBaseUrl"];
-            if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) ||
-                (uri.Scheme != Uri.UriSchemeHttps &&
-                 !(environment.IsDevelopment() && uri.Scheme == Uri.UriSchemeHttp &&
-                   string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))) ||
-                !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
-                throw new InvalidOperationException(AccountEmailMessages.Get("VerificationUrlInvalid"));
-            value = new UriBuilder(uri) { Query = $"token={Uri.EscapeDataString(token)}" }.Uri.AbsoluteUri;
-            bodyResource = "VerifyBody";
-        }
+        var isVerification = purpose == AccountActionPurpose.VerifyEmail;
+        var address = configuration[isVerification ? "Authentication:EmailVerificationBaseUrl" : "Authentication:PasswordResetBaseUrl"];
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps &&
+             !(environment.IsDevelopment() && uri.Scheme == Uri.UriSchemeHttp &&
+               string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))) ||
+            !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
+            throw new InvalidOperationException(AccountEmailMessages.Get(isVerification ? "VerificationUrlInvalid" : "PasswordResetUrlInvalid"));
+        var value = new UriBuilder(uri) { Query = $"token={Uri.EscapeDataString(token)}" }.Uri.AbsoluteUri;
+        var bodyResource = isVerification ? "VerifyBody" : "ResetBody";
         using var message = new MailMessage(new MailAddress(from), new MailAddress(recipient))
         {
-            Subject = AccountEmailMessages.Get(purpose == AccountActionPurpose.VerifyEmail ? "VerifySubject" : "ResetSubject"),
+            Subject = AccountEmailMessages.Get(isVerification ? "VerifySubject" : "ResetSubject"),
             Body = string.Format(CultureInfo.CurrentCulture,
                 BodyFormats.GetOrAdd((CultureInfo.CurrentUICulture.Name, bodyResource), static key => CompositeFormat.Parse(AccountEmailMessages.Get(key.Resource))), value, expiresAt),
             IsBodyHtml = false

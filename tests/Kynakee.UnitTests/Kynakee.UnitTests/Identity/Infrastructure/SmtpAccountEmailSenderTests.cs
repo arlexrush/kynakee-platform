@@ -49,26 +49,53 @@ public sealed class SmtpAccountEmailSenderTests
         transport.Body.Should().BeNull();
     }
 
-    [Fact]
-    public async Task ResetPasswordMissingVerificationAddressShouldPreserveTokenMessage()
+    [Theory]
+    [InlineData("Development", "http://localhost:3000/auth/password/reset")]
+    [InlineData("Production", "https://web.example.test/auth/password/reset")]
+    public async Task ResetPasswordValidAddressShouldSendEscapedSingleUseLink(string environmentName, string address)
     {
         var transport = new CapturingTransport();
-        var sender = CreateSender(Environments.Production, null, transport);
+        var sender = CreateSender(environmentName, null, transport, address);
 
-        await sender.SendAsync("owner@example.test", "reset-token", AccountActionPurpose.ResetPassword,
-            DateTimeOffset.UtcNow, CancellationToken.None);
+        await sender.SendAsync("owner@example.test", "opaque token&value", AccountActionPurpose.ResetPassword,
+            new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero), CancellationToken.None);
 
-        transport.Body.Should().Contain("reset-token");
+        transport.Body.Should().Contain(address + "?token=opaque%20token%26value");
     }
 
-    private static SmtpAccountEmailSender CreateSender(string environmentName, string? address, CapturingTransport transport)
+    [Theory]
+    [InlineData("Production", "http://localhost:3000/auth/password/reset")]
+    [InlineData("Staging", "http://localhost:3000/auth/password/reset")]
+    [InlineData("Development", "http://example.test/auth/password/reset")]
+    [InlineData("Development", "http://127.0.0.1:3000/auth/password/reset")]
+    [InlineData("Development", "http://localhost@evil.example.test/auth/password/reset")]
+    [InlineData("Development", "ftp://localhost/auth/password/reset")]
+    [InlineData("Production", "https://web.example.test/auth/password/reset?token=old")]
+    [InlineData("Production", "https://web.example.test/auth/password/reset#section")]
+    [InlineData("Production", "https://user@web.example.test/auth/password/reset")]
+    [InlineData("Production", "invalid")]
+    [InlineData("Production", null)]
+    public async Task ResetPasswordInvalidAddressShouldRejectBeforeTransport(string environmentName, string? address)
+    {
+        var transport = new CapturingTransport();
+        var sender = CreateSender(environmentName, "https://web.example.test/auth/email/verify", transport, address);
+
+        var act = () => sender.SendAsync("owner@example.test", "token", AccountActionPurpose.ResetPassword,
+            DateTimeOffset.UtcNow, CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        transport.Body.Should().BeNull();
+    }
+
+    private static SmtpAccountEmailSender CreateSender(string environmentName, string? address, CapturingTransport transport, string? resetAddress = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Smtp:Host"] = "smtp.example.test",
             ["Smtp:From"] = "sender@example.test",
             ["Smtp:Port"] = "587",
-            ["Authentication:EmailVerificationBaseUrl"] = address
+            ["Authentication:EmailVerificationBaseUrl"] = address,
+            ["Authentication:PasswordResetBaseUrl"] = resetAddress
         }).Build();
         var environment = Substitute.For<IHostEnvironment>();
         environment.EnvironmentName.Returns(environmentName);
