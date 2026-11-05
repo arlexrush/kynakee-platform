@@ -26,6 +26,7 @@
     <File Path="docs/ADR/ADRs.docx" />
     <File Path="docs/ADR/kynakee-adrs-part1.md" />
     <File Path="docs/ADR/kynakee-adrs-part2.md" />
+    <File Path="MigrationProcesses.md" />
   </Folder>
   <Folder Name="/docs/Api/">
     <File Path="docs/API/Flujo-registro-tenant-propietario.md" />
