@@ -41,7 +41,7 @@ services:
       ConnectionStrings__Redis: redis:6379
       RateLimiting__PermitLimit: ${GATEWAY_RATE_LIMIT_PERMIT_LIMIT:-100}
       RateLimiting__WindowSeconds: ${GATEWAY_RATE_LIMIT_WINDOW_SECONDS:-60}
-      ReverseProxy__Clusters__api__Destinations__api__Address: http://kynakee-api:8080/
+      ReverseProxy__Clusters__api-cluster__Destinations__api__Address: http://kynakee-api:8080/
     expose:
       - "8080"
     depends_on:
