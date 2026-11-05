@@ -114,14 +114,14 @@ services:
       ConnectionStrings__Redis: redis:6379
       ConnectionStrings__RabbitMq: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672
       Qdrant__Endpoint: http://qdrant:6333
-      ObjectStorage__Enabled: "true"
-      ObjectStorage__Endpoint: ${OBJECT_STORAGE_ENDPOINT:?Set the HTTPS Hetzner regional endpoint}
-      ObjectStorage__AccessKey: ${OBJECT_STORAGE_ACCESS_KEY:?Set the Hetzner S3 access key}
-      ObjectStorage__SecretKey: ${OBJECT_STORAGE_SECRET_KEY:?Set the Hetzner S3 secret key}
-      ObjectStorage__Bucket: ${OBJECT_STORAGE_BUCKET:?Set the existing private Hetzner bucket}
-      ObjectStorage__Region: ${OBJECT_STORAGE_REGION:?Set the Hetzner bucket region}
-      ObjectStorage__UseSsl: "true"
-      ObjectStorage__MaxObjectBytes: ${OBJECT_STORAGE_MAX_OBJECT_BYTES:-104857600}
+      # ObjectStorage__Enabled: "true"
+      # ObjectStorage__Endpoint: ${OBJECT_STORAGE_ENDPOINT:?Set the HTTPS Hetzner regional endpoint}
+      # ObjectStorage__AccessKey: ${OBJECT_STORAGE_ACCESS_KEY:?Set the Hetzner S3 access key}
+      # ObjectStorage__SecretKey: ${OBJECT_STORAGE_SECRET_KEY:?Set the Hetzner S3 secret key}
+      # ObjectStorage__Bucket: ${OBJECT_STORAGE_BUCKET:?Set the existing private Hetzner bucket}
+      # ObjectStorage__Region: ${OBJECT_STORAGE_REGION:?Set the Hetzner bucket region}
+      # ObjectStorage__UseSsl: "true"
+      # ObjectStorage__MaxObjectBytes: ${OBJECT_STORAGE_MAX_OBJECT_BYTES:-104857600}
     expose:
       - "8080"
     volumes:
