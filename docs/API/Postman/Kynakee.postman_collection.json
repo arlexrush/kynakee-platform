@@ -1,0 +1,102 @@
+{
+  "info": {
+    "name": "Kynakee Backend — solicitudes manuales",
+    "description": "Colección basada en las rutas registradas en el código. Ejecutar individualmente: algunas solicitudes crean o modifican datos, envían correos, cambian contraseñas o revocan sesiones. No lanzar el runner completo contra producción. No contiene credenciales ni demuestra que los endpoints estén operativos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "idempotencyKey", "value": "" },
+    { "key": "email", "value": "" },
+    { "key": "password", "value": "" },
+    { "key": "newPassword", "value": "" },
+    { "key": "verificationToken", "value": "" },
+    { "key": "resetToken", "value": "" },
+    { "key": "invitationToken", "value": "" },
+    { "key": "inviteeEmail", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "userETag", "value": "" },
+    { "key": "tenantETag", "value": "" },
+    { "key": "membershipETag", "value": "" },
+    { "key": "tenantSlug", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 Salud del Gateway",
+      "item": [
+        { "name": "Salud", "request": { "method": "GET", "url": "{{baseUrl}}/health", "description": "Salud del Gateway; no demuestra que la API ni los flujos de negocio funcionen." } },
+        { "name": "Preparación", "request": { "method": "GET", "url": "{{baseUrl}}/health/ready", "description": "Preparación del Gateway. No demuestra el recorrido por YARP ni el estado de todos los módulos." } },
+        { "name": "Actividad", "request": { "method": "GET", "url": "{{baseUrl}}/health/live", "description": "Actividad del Gateway." } }
+      ]
+    },
+    {
+      "name": "02 Identity — registro y verificación",
+      "item": [
+        {
+          "name": "Registrar propietario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Prueba\",\n  \"lastName\": \"Identity\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"phone\": \"+34600000000\",\n  \"tenantName\": \"Tenant de prueba\",\n  \"tenantType\": 0,\n  \"taxId\": \"12345678Z\",\n  \"taxCountry\": \"ES\",\n  \"planId\": \"free\",\n  \"channel\": \"web\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/api/v1/identity/auth/register",
+            "description": "EFECTO REAL: crea un tenant y propietario pendientes y puede enviar correo. Usa datos y buzón autorizados. Respuesta prevista 202 sin sesión. La dirección fiscal es opcional; si se proporciona, country, street, municipality y postalCode deben estar completos. Los nombres de registro llevan prefijo fiscal."
+          }
+        },
+        { "name": "Reenviar verificación", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/email/resend", "description": "EFECTO REAL: puede enviar correo; utiliza buzón autorizado. Respuesta prevista 202; existe un periodo de espera por cuenta." } },
+        { "name": "Verificar correo", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"token\":\"{{verificationToken}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/email/verify", "description": "EFECTO REAL: consume el token del buzón y activa la cuenta pendiente. Respuesta prevista 200; no crea sesión." } }
+      ]
+    },
+    {
+      "name": "03 Identity — sesiones",
+      "item": [
+        { "name": "Iniciar sesión", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\",\"channel\":\"web\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/login", "description": "EFECTO REAL: crea una sesión. Requiere usuario activo y correo verificado. Guarda accessToken y refreshToken solo localmente y de forma privada; no exportes respuestas." } },
+        { "name": "Renovar sesión", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\"refreshToken\":\"{{refreshToken}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/refresh", "description": "EFECTO REAL: rota el refresh token y devuelve una sesión nueva. Usa una clave nueva para cada operación nueva; conserva clave y cuerpo originales para un reintento idéntico." } },
+        { "name": "Cerrar sesión", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"refreshToken\":\"{{refreshToken}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/logout", "description": "EFECTO REAL: revoca el refresh token. Un 204 no acredita revocación inmediata del JWT de acceso." } }
+      ]
+    },
+    {
+      "name": "04 Identity — recuperación de contraseña",
+      "item": [
+        { "name": "Solicitar recuperación", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/password/forgot", "description": "EFECTO REAL: puede generar y enviar correo de recuperación. Respuesta genérica prevista 202; no revela si la cuenta existe." } },
+        { "name": "Restablecer contraseña", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"token\":\"{{resetToken}}\",\"password\":\"{{newPassword}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/password/reset", "description": "EFECTO REAL: consume el token y cambia la contraseña. Utiliza únicamente cuentas de prueba autorizadas." } }
+      ]
+    },
+    {
+      "name": "05 Identity — consultas autenticadas",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Consultar mi usuario", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/identity/users/me", "description": "Copia la cabecera ETag completa, con comillas, a userETag antes de modificar el perfil." } },
+        { "name": "Consultar mi tenant", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/identity/tenants/me", "description": "Copia la cabecera ETag completa, con comillas, a tenantETag y el slug a tenantSlug. Vuelve a consultar antes de cada actualización del tenant." } },
+        { "name": "Listar usuarios del tenant", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/identity/users", "description": "Requiere permisos adecuados. Para modificar una membresía, copia userId y membershipETag del mismo usuario. Conserva las comillas del ETag, sin las barras de escape del JSON." } }
+      ]
+    },
+    {
+      "name": "06 Identity — modificaciones autenticadas",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Actualizar mi usuario", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "If-Match", "value": "{{userETag}}" }], "body": { "mode": "raw", "raw": "{\"firstName\":\"Prueba\",\"lastName\":\"Identity\",\"phone\":\"+34600000000\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/users/me", "description": "EFECTO REAL: modifica el perfil. Consulta users/me para obtener el ETag vigente; respuesta prevista 204." } },
+        { "name": "Actualizar tenant", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "If-Match", "value": "{{tenantETag}}" }], "body": { "mode": "raw", "raw": "{\"name\":\"Tenant de prueba\",\"slug\":\"{{tenantSlug}}\",\"planId\":\"free\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/tenants/me", "description": "EFECTO REAL: modifica el tenant. Usa valores autorizados y el ETag vigente. Los campos fiscales omitidos se conservan; null puede eliminarlos si el resultado es válido." } },
+        { "name": "Actualizar ajustes del tenant", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "If-Match", "value": "{{tenantETag}}" }], "body": { "mode": "raw", "raw": "{\"administration\":10,\"profit\":10,\"quality\":2,\"safetyHealth\":2,\"environment\":1,\"contingency\":5}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/tenants/me/settings", "description": "EFECTO REAL: modifica porcentajes del tenant. Vuelve a obtener el ETag del tenant antes de enviar." } },
+        { "name": "Invitar usuario", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\"firstName\":\"Invitado\",\"lastName\":\"Prueba\",\"email\":\"{{inviteeEmail}}\",\"phone\":\"+34600000000\",\"role\":4}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/users/invite", "description": "EFECTO REAL: crea una invitación y puede enviar correo. Usa un buzón diferente y autorizado. role 4 = Viewer; respuesta prevista 201." } },
+        { "name": "Cambiar rol de usuario", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "If-Match", "value": "{{membershipETag}}" }], "body": { "mode": "raw", "raw": "{\"role\":3}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/users/{{userId}}/role", "description": "EFECTO REAL: cambia el rol de la membresía indicada. role 3 = Commercial. Obtén userId y ETag de la misma membresía; no pruebes con el propietario." } },
+        { "name": "Desactivar usuario", "request": { "method": "DELETE", "header": [{ "key": "If-Match", "value": "{{membershipETag}}" }], "url": "{{baseUrl}}/api/v1/identity/users/{{userId}}", "description": "EFECTO REAL: desactiva la membresía y revoca refresh tokens e invitaciones. Utiliza solo un usuario de prueba autorizado, nunca el propietario." } }
+      ]
+    },
+    {
+      "name": "07 Identity — aceptar invitación",
+      "item": [
+        { "name": "Aceptar invitación", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }], "body": { "mode": "raw", "raw": "{\"invitationToken\":\"{{invitationToken}}\",\"password\":\"{{newPassword}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/v1/identity/auth/invitations/accept", "description": "EFECTO REAL: consume la invitación, establece la contraseña y crea una sesión. Usa el token del buzón autorizado y mantén la sesión en privado." } }
+      ]
+    },
+    {
+      "name": "08 Billing — consultas autenticadas",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Consultar saldo", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/billing/credits", "description": "Consulta el saldo del tenant autenticado. Puede responder 404 si no existe el saldo; la ruta no demuestra integración operativa de Billing." } },
+        { "name": "Consultar transacciones", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/billing/credits/transactions?limit=50", "host": ["{{baseUrl}}"], "path": ["api", "v1", "billing", "credits", "transactions"], "query": [{ "key": "limit", "value": "50", "description": "Opcional: entre 1 y 100; por defecto 50." }, { "key": "type", "value": "Reserve", "disabled": true, "description": "Opcional: Reserve, Consume, Release o Recharge." }, { "key": "from", "value": "2026-01-01T00:00:00Z", "disabled": true, "description": "Opcional: inicio inclusivo en UTC." }, { "key": "to", "value": "2026-12-31T23:59:59Z", "disabled": true, "description": "Opcional: fin inclusivo en UTC." }, { "key": "cursor", "value": "", "disabled": true, "description": "Opcional: cursor de la página anterior." }] }, "description": "Consulta paginada del tenant autenticado. Activa solo los filtros que necesites." } }
+      ]
+    }
+  ]
+}
