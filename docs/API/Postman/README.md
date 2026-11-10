@@ -1,4 +1,35 @@
-# Identity dev por ngrok y Gateway
+# Colecciones Postman del backend
+
+## Colección general: solicitudes manuales
+
+`Kynakee.postman_collection.json` contiene las rutas registradas en el código actual: tres comprobaciones de salud del Gateway, 18 endpoints de Identity y dos consultas de Billing. Es una colección independiente de la de desarrollo descrita más abajo. Su presencia **no acredita que se hayan ejecutado las solicitudes ni que todos los módulos estén operativos en producción**; la versión desplegada puede diferir del código local.
+
+### Importar y preparar
+
+1. En Postman Desktop, utiliza **Import** y selecciona `docs/API/Postman/Kynakee.postman_collection.json`. Utiliza un espacio local sin sincronización de datos sensibles.
+2. Configura `baseUrl` sin barra final. En producción es `https://api.kynakee.com`; en desarrollo debe apuntar al Gateway del entorno correspondiente, no directamente a la API. Comprueba el destino antes de cada envío.
+3. Rellena solo los valores necesarios en almacenamiento privado local de Postman: `email`, `password`, `accessToken`, `refreshToken` y, cuando corresponda, los tokens recibidos por correo. Las variables del archivo están vacías; no guardes ni sincronices credenciales o respuestas sensibles en valores compartidos, repositorios, consola o chat.
+4. Ejecuta las solicitudes **una a una**. No ejecutes el runner completo contra producción: registro, invitaciones y recuperación pueden crear datos o enviar correos; refresh y logout alteran sesiones; otras solicitudes modifican perfiles, contraseñas y membresías.
+
+Para empezar sin modificar datos, ejecuta `Preparación` y verifica la respuesta del Gateway. Las consultas autenticadas requieren un token válido; el login requiere una cuenta activa con correo verificado y **crea una sesión**. Copia manualmente los tokens de la respuesta en valores privados locales. Esta colección no los guarda automáticamente. Si no existen cuentas autorizadas para pruebas, acuerda primero cómo crearlas; no uses buzones de terceros sin permiso.
+
+### Idempotencia y concurrencia
+
+Las solicitudes que muestran `Idempotency-Key` requieren una clave Base64URL de al menos 16 bytes aleatorios. Genera una nueva para cada operación nueva; conserva exactamente la misma clave **y el mismo cuerpo** para reintentar esa operación. No reutilices la clave con un cuerpo distinto. El `refreshToken` cambia tras una renovación: no repitas con la clave anterior y el nuevo cuerpo.
+
+En PowerShell puedes generar una clave sin mostrarla en el repositorio ni en el chat:
+
+```powershell
+[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).TrimEnd('=').Replace('+','-').Replace('/','_')
+```
+
+Copia el resultado al valor privado local de `idempotencyKey`. Esta colección no regenera ni guarda claves automáticamente. Sigue las políticas del entorno sobre historial y almacenamiento local de Postman.
+
+Para modificar el perfil del usuario o el tenant, primero ejecuta la lectura correspondiente y copia la cabecera `ETag` completa, incluidas las comillas, a `userETag` o `tenantETag`. Para cambiar un rol o desactivar una membresía, copia `userId` y `membershipETag` del mismo elemento del listado; conserva las comillas del ETag sin las barras de escape del JSON. Vuelve a leer antes de cada modificación: un ETag obsoleto o ajeno puede producir `412`, y la ausencia de `If-Match` produce `428`. No pruebes cambios de rol o desactivación contra el propietario.
+
+En Billing, las consultas usan el tenant del token y pueden fallar o devolver `404` según el estado del entorno. Las pruebas manuales de Identity documentadas más abajo corresponden a **dev**, no a producción.
+
+## Identity dev por ngrok y Gateway
 
 Importar `Identity-dev.postman_collection.json` en Postman Desktop, en un espacio local sin sincronización de datos sensibles. Contiene 28 solicitudes que cubren los 18 endpoints Identity y salud. La cobertura del artefacto no significa que se haya ejecutado ni que el cierre E2E esté verificado.
 

@@ -21,6 +21,7 @@
   </Folder>
   <Folder Name="/docs/" />
   <Folder Name="/docs/Adr/">
+    <File Path="AddBackendDeployment.md" />
     <File Path="docs/ADR/ADR-025.docx" />
     <File Path="docs/ADR/ADR-025.md" />
     <File Path="docs/ADR/ADRs.docx" />
